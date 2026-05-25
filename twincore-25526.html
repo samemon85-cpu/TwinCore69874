@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TwinCore — Digital Twin Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#03060D;--s1:#07091A;--s2:#0A0E20;--s3:#0D1226;
+  --b1:#111A2E;--b2:#182438;--b3:#1E3050;
+  --ac:#00DCFF;--ac2:#0099CC;--acg:rgba(0,220,255,.1);
+  --wm:#FF5C28;--gn:#00EE88;--yw:#FFD000;--rd:#FF2244;--pu:#9B6DFF;--tl:#00D4AA;
+  --tx:#CCE8FF;--mt:#3D6080;--dm:#142030;
+  --fn:'IBM Plex Sans',sans-serif;--fm:'IBM Plex Mono',monospace;
+  --r:6px;--rl:10px;--rxl:16px;
+}
+html,body{height:100%;overflow:hidden;font-family:var(--fn);background:var(--bg);color:var(--tx);font-size:13px}
+button{cursor:pointer;font-family:var(--fn)}
+input,select{font-family:var(--fn);outline:none}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bounceX{0%,100%{transform:translateX(0)}50%{transform:translateX(-8px)}}
+@keyframes pulse2{0%,100%{box-shadow:0 0 0 0 rgba(255,34,68,.4)}70%{box-shadow:0 0 0 6px rgba(255,34,68,0)}}
+
+/* APP SHELL */
+#app{display:grid;grid-template-rows:52px 1fr;height:100vh;overflow:hidden}
+#hdr{background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 18px;gap:12px;z-index:60;flex-shrink:0}
+#shell{display:grid;grid-template-columns:210px 1fr;overflow:hidden}
+#sidebar{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+#main{overflow:hidden;display:flex;flex-direction:column}
+.scroll-page{overflow-y:auto;padding:22px;flex:1}
+.page{display:none;animation:fadeUp .28s ease}
+.page.active{display:block}
+.fullpage{display:none;flex:1;overflow:hidden}
+.fullpage.active{display:grid}
+
+/* HEADER */
+.logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.logo-mark{width:30px;height:30px;background:linear-gradient(135deg,var(--ac),var(--wm));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo-name{font-family:var(--fm);font-size:14px;font-weight:700;letter-spacing:.4px}
+.logo-tag{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--mt)}
+.hdiv{width:1px;height:22px;background:var(--b1);flex-shrink:0}
+.hpill{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--b1);border-radius:20px;padding:3px 10px;font-size:10px;font-family:var(--fm);color:var(--mt)}
+.hdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hdot-ok{background:var(--gn)}
+.hdot-warn{background:var(--yw)}
+.hdot-err{background:var(--rd);animation:blink .8s infinite}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.htime{font-size:10px;font-family:var(--fm);color:var(--mt)}
+.ubtn{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:4px 10px;cursor:pointer;transition:border-color .15s}
+.ubtn:hover{border-color:var(--b3)}
+.uav{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--pu));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--bg)}
+.unm{font-size:10px;color:var(--mt)}
+
+/* SIDEBAR */
+.sb-sec{padding:14px 12px 6px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dm);font-weight:700;flex-shrink:0}
+.nav{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r);margin:1px 7px;cursor:pointer;color:var(--mt);font-size:11px;font-weight:500;transition:all .12s}
+.nav:hover{background:var(--s2);color:var(--tx)}
+.nav.active{background:rgba(0,220,255,.1);color:var(--ac);border:1px solid rgba(0,220,255,.18)}
+.nav-ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;border-radius:8px;padding:1px 5px;font-size:8px;font-family:var(--fm)}
+.nbr{background:var(--rd);color:#fff}
+.nby{background:var(--yw);color:#000}
+.sb-foot{margin-top:auto;padding:10px;border-top:1px solid var(--b1);flex-shrink:0}
+.upzone{border:1.5px dashed var(--b2);border-radius:var(--r);padding:10px;text-align:center;cursor:pointer;transition:all .18s}
+.upzone:hover,.upzone.drag{border-color:var(--ac);background:var(--acg)}
+.upzone-lbl{font-size:10px;font-family:var(--fm);color:var(--ac);display:block;margin-bottom:3px}
+.upzone-sub{font-size:8px;color:var(--mt)}
+
+/* SHARED COMPONENTS */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:15px}
+.chd{font-size:11px;font-weight:600;color:var(--tx);margin-bottom:13px;display:flex;align-items:center;justify-content:space-between}
+.chd-sub{font-size:10px;color:var(--mt);font-weight:400}
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.kpi{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:13px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--ac))}
+.klbl{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mt);margin-bottom:6px}
+.kval{font-size:24px;font-weight:700;font-family:var(--fm);color:var(--tx);line-height:1}
+.kunit{font-size:10px;color:var(--mt);margin-left:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:4px;padding:2px 7px;font-size:9px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;flex-shrink:0}
+.bop{background:rgba(0,238,136,.1);color:var(--gn);border:1px solid rgba(0,238,136,.2)}
+.bwn{background:rgba(255,208,0,.1);color:var(--yw);border:1px solid rgba(255,208,0,.2)}
+.bcr{background:rgba(255,34,68,.1);color:var(--rd);border:1px solid rgba(255,34,68,.2)}
+.bst{background:rgba(61,96,128,.1);color:var(--mt);border:1px solid rgba(61,96,128,.2)}
+.sdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--b1)}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--s2)}
+th{padding:7px 11px;text-align:left;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--dm);font-weight:700;white-space:nowrap}
+td{padding:8px 11px;font-size:11px;border-top:1px solid var(--b1)}
+tr.row{cursor:pointer;transition:background .1s}
+tr.row:hover td{background:var(--s2)}
+.hbw{display:flex;align-items:center;gap:7px}
+.hb{flex:1;height:3px;background:var(--b1);border-radius:2px}
+.hbf{height:100%;border-radius:2px;transition:width .4s}
+.mono{font-family:var(--fm)}
+
+/* PLAN (overview schematic) */
+.ftabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.ftab{background:var(--s2);border:1px solid var(--b1);color:var(--mt);border-radius:5px;padding:3px 9px;font-size:9px;font-family:var(--fm);font-weight:600;cursor:pointer;transition:all .12s}
+.ftab.active{background:rgba(0,220,255,.14);border-color:var(--ac);color:var(--ac)}
+.planwrap{position:relative;width:100%;padding-bottom:50%;background:var(--bg);border-radius:var(--r);overflow:hidden;border:1px solid var(--b1)}
+.plansvg{position:absolute;inset:0;width:100%;height:100%}
+.spot{position:absolute;transform:translate(-50%,-50%);background:rgba(0,220,255,.12);border:1.5px solid var(--ac);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:8px;font-family:var(--fm);font-weight:700;color:var(--ac);transition:all .15s;z-index:2;white-space:nowrap}
+.spot:hover,.spot.sel{background:var(--ac);color:var(--bg)}
+.spotw{border-color:var(--yw);color:var(--yw)}.spotw:hover,.spotw.sel{background:var(--yw);color:#000}
+.spotc{border-color:var(--rd);color:var(--rd);animation:blink 1s infinite}.spotc:hover,.spotc.sel{background:var(--rd);color:#fff;animation:none}
+.spots{border-color:var(--mt);color:var(--mt)}
+
+/* ASSET PANEL */
+#apanel{position:fixed;top:52px;right:0;bottom:0;width:300px;background:var(--s1);border-left:1px solid var(--b2);z-index:150;transform:translateX(100%);transition:transform .28s ease;overflow-y:auto;padding:18px}
+#apanel.open{transform:translateX(0)}
+.apcls{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--mt);font-size:17px;cursor:pointer}
+.apname{font-size:16px;font-weight:700;color:var(--tx);margin-bottom:2px;padding-right:28px}
+.apsub{font-size:10px;color:var(--mt);font-family:var(--fm);margin-bottom:12px}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.pf{background:var(--bg);border-radius:var(--r);padding:7px 9px}
+.pflbl{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--dm);margin-bottom:2px}
+.pfval{font-size:11px;font-family:var(--fm);color:var(--tx)}
+.srow{background:var(--bg);border-radius:var(--r);padding:7px 11px;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.slbl{font-size:10px;color:var(--mt)}
+.sval{font-family:var(--fm);font-weight:700;font-size:13px;color:var(--ac)}
+
+/* ENERGY */
+.mtabs{display:flex;gap:5px;margin-bottom:11px}
+.mtab{background:var(--s2);border:1px solid var(--b1);color:var(--mt);border-radius:4px;padding:3px 9px;font-size:9px;font-family:var(--fm);cursor:pointer;transition:all .12s}
+.mtab.active{background:var(--acg);border-color:var(--ac);color:var(--ac)}
+.bchart{display:flex;align-items:flex-end;gap:2px;height:100px;padding:0 1px}
+.bw{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+.br{width:100%;border-radius:2px 2px 0 0;transition:height .4s,background .3s;cursor:pointer}
+.br:hover{filter:brightness(1.35)}
+
+/* WORK ORDERS */
+.wocard{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:11px 13px;margin-bottom:7px;display:grid;grid-template-columns:1fr auto;gap:9px;align-items:start;cursor:pointer;transition:border-color .12s}
+.wocard:hover{border-color:var(--b2)}
+.woid{font-size:8px;font-family:var(--fm);color:var(--dm);margin-bottom:3px}
+.wotitle{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:3px}
+.wometa{font-size:9px;color:var(--mt)}
+.wofbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.wofb{background:var(--s2);border:1px solid var(--b1);color:var(--mt);border-radius:4px;padding:3px 9px;font-size:9px;cursor:pointer;transition:all .12s}
+.wofb.active{background:var(--acg);border-color:var(--ac);color:var(--ac)}
+
+/* IoT */
+.rulerow{padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px}
+.rulerow:last-child{border-bottom:none}
+.tog{width:34px;height:18px;background:var(--b2);border-radius:9px;position:relative;cursor:pointer;transition:background .18s;flex-shrink:0}
+.tog.on{background:var(--gn)}
+.tok{position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .18s}
+.tog.on .tok{left:18px}
+.tdot{width:7px;height:7px;border-radius:50%;background:var(--rd);box-shadow:0 0 7px var(--rd);animation:blink .9s infinite;flex-shrink:0}
+.slivegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}
+.slive{background:var(--bg);border-radius:var(--r);padding:9px 11px;border-left:2px solid var(--b2)}
+
+/* ML */
+.slrow{margin-bottom:11px}
+.sltop{display:flex;justify-content:space-between;margin-bottom:4px;font-size:10px}
+.slrow input[type=range]{width:100%;accent-color:var(--ac)}
+.mlresult{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.mlrc{background:var(--bg);border-radius:var(--r);padding:11px 13px}
+.mlrl{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--dm);margin-bottom:3px}
+.mlrv{font-size:20px;font-weight:700;font-family:var(--fm)}
+.mlrs{font-size:8px;color:var(--dm);margin-top:1px}
+.mlbtn{width:100%;background:var(--ac);border:none;border-radius:var(--r);padding:10px;color:var(--bg);font-size:12px;font-weight:700;margin-top:9px;transition:opacity .18s}
+.mlbtn:hover{opacity:.83}
+.mlbtn:disabled{opacity:.35;cursor:not-allowed}
+.anomrow{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--rd);margin-bottom:3px}
+
+/* EXEC */
+.execgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
+.fcrow{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--b1)}
+.fcrow:last-child{border-bottom:none}
+.sbrow{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.sbm{font-size:9px;font-family:var(--fm);color:var(--mt);width:22px}
+.sbb{flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden}
+.sbf{height:100%;background:rgba(255,92,40,.55);border-radius:3px}
+.sbv{font-size:9px;font-family:var(--fm);color:var(--wm);width:34px;text-align:right}
+
+/* ARCH */
+.archlayer{border-radius:var(--r);padding:12px 15px;margin-bottom:7px;border-left:3px solid var(--lc)}
+.archlayer-title{font-size:10px;font-family:var(--fm);font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--lc);margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.archips{display:flex;flex-wrap:wrap;gap:4px}
+.achip{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:var(--tx);border-radius:3px;padding:1px 8px;font-size:9px;font-family:var(--fm)}
+
+/* ══════════ BIM VIEWER PAGE ══════════ */
+#page-bim{grid-template-columns:220px 1fr 260px;height:calc(100vh - 52px)}
+#bimleft{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+#bimcenter{position:relative;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+#bimright{background:var(--s1);border-left:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
+
+.bvtabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+.bvtab{flex:1;background:none;border:none;color:var(--mt);padding:8px 0;font-size:10px;font-family:var(--fm);font-weight:500;border-bottom:2px solid transparent;transition:all .12s;cursor:pointer}
+.bvtab:hover{color:var(--tx)}
+.bvtab.active{color:var(--ac);border-bottom-color:var(--ac)}
+#bimarea{position:relative;flex:1;overflow:hidden}
+#threecanvas{width:100%;height:100%;display:block;cursor:grab}
+#threecanvas:active{cursor:grabbing}
+#plancanvas{width:100%;height:100%;position:absolute;inset:0;display:none}
+#sectcanvas{width:100%;height:100%;position:absolute;inset:0;display:none}
+.bimtbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:3px;background:rgba(7,9,26,.9);border:1px solid var(--b2);border-radius:20px;padding:3px;z-index:5;backdrop-filter:blur(6px)}
+.bimtb{background:none;border:none;color:var(--mt);padding:3px 9px;font-size:9px;font-family:var(--fm);border-radius:16px;font-weight:500;transition:all .12s;cursor:pointer}
+.bimtb:hover{color:var(--tx);background:var(--s2)}
+.bimtb.active{background:var(--acg);color:var(--ac)}
+.bimvctrls{position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:3px;z-index:5}
+.bimvc{width:28px;height:28px;background:rgba(7,9,26,.9);border:1px solid var(--b2);border-radius:var(--r);color:var(--mt);font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;backdrop-filter:blur(4px)}
+.bimvc:hover{border-color:var(--ac);color:var(--ac)}
+.bimhud{position:absolute;bottom:8px;right:8px;font-size:8px;font-family:var(--fm);color:var(--mt);text-align:right;z-index:5;line-height:1.9}
+.dropov{position:absolute;inset:0;background:rgba(0,220,255,.06);border:3px dashed var(--ac);display:none;align-items:center;justify-content:center;z-index:20;pointer-events:none}
+.dropov.show{display:flex}
+.loadov{position:absolute;inset:0;background:rgba(3,6,13,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;backdrop-filter:blur(4px)}
+.loadov.hidden{display:none}
+.spinner{width:36px;height:36px;border:2px solid var(--b2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:14px}
+.loadbar{width:180px;height:2px;background:var(--b2);border-radius:1px;margin-top:10px;overflow:hidden}
+.loadfill{height:100%;background:var(--ac);width:0;transition:width .3s}
+.bimempty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:2}
+.bimempty-icon{font-size:52px;margin-bottom:14px;opacity:.18}
+.bimempty-title{font-size:14px;font-weight:600;opacity:.3;margin-bottom:5px}
+.bimempty-sub{font-size:11px;color:var(--mt);text-align:center;max-width:260px;line-height:1.65;opacity:.5}
+.bimempty-arr{font-size:18px;color:var(--ac);opacity:.3;margin-top:12px;animation:bounceX 2s infinite}
+.measureov{position:absolute;top:8px;right:8px;background:rgba(7,9,26,.92);border:1px solid var(--b2);border-radius:var(--r);padding:7px 11px;font-size:9px;font-family:var(--fm);color:var(--mt);z-index:5;display:none}
+.measureov.show{display:block}
+.bimtree{flex:1;overflow-y:auto;padding:4px 0}
+.tnode{display:flex;align-items:center;gap:5px;padding:4px 10px;cursor:pointer;font-size:10px;transition:background .1s;user-select:none}
+.tnode:hover{background:var(--s2)}
+.tnode.tsel{background:var(--acg);color:var(--ac)}
+.tng{width:12px;text-align:center;color:var(--mt);font-size:9px;flex-shrink:0;transition:transform .12s}
+.tng.open{transform:rotate(90deg)}
+.tic{font-size:11px;flex-shrink:0;color:var(--mt)}
+.tlbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tcnt{font-size:8px;font-family:var(--fm);color:var(--mt)}
+.flitem{display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;transition:background .1s;font-size:10px}
+.flitem:hover{background:var(--s2)}
+.flitem.active{background:var(--acg)}
+.flibar{width:3px;height:18px;border-radius:2px;background:var(--b2);flex-shrink:0;transition:background .18s}
+.flitem.active .flibar{background:var(--ac)}
+.flielv{font-size:8px;font-family:var(--fm);color:var(--mt)}
+.rptabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+.rpt{flex:1;background:none;border:none;color:var(--mt);padding:7px 0;font-size:9px;font-family:var(--fm);font-weight:500;border-bottom:2px solid transparent;transition:all .12s;cursor:pointer}
+.rpt:hover{color:var(--tx)}
+.rpt.active{color:var(--ac);border-bottom-color:var(--ac)}
+.propgrp{padding:9px 13px;border-bottom:1px solid var(--b1)}
+.propgrp-title{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dm);margin-bottom:7px;font-weight:700}
+.prow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;gap:6px}
+.pk{font-size:9px;color:var(--mt);flex-shrink:0}
+.pv{font-size:9px;font-family:var(--fm);color:var(--tx);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
+.phi{color:var(--ac)}.pok{color:var(--gn)}.pwn{color:var(--yw)}.pcr{color:var(--rd)}
+.ali{padding:7px 13px;border-bottom:1px solid var(--b1);cursor:pointer;display:flex;gap:7px;align-items:center;transition:background .1s}
+.ali:hover{background:var(--s2)}
+.ali.active{background:var(--acg)}
+.alidot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.alinm{font-size:10px;font-weight:500;flex:1}
+.alifl{font-size:8px;font-family:var(--fm);color:var(--mt)}
+.alih{font-size:9px;font-family:var(--fm);font-weight:700}
+.hb2{height:2px;background:var(--b1);border-radius:1px;margin-top:2px}
+.hbf2{height:100%;border-radius:1px;transition:width .4s}
+.clippanel{padding:9px 13px;border-bottom:1px solid var(--b1)}
+.cliptitle{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dm);margin-bottom:7px;font-weight:700}
+.cliprow{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.clipax{font-size:9px;width:14px;flex-shrink:0}
+.clipv{font-size:8px;font-family:var(--fm);color:var(--mt);width:30px;text-align:right}
+.filebox{margin:9px 13px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:9px 11px}
+.fbn{font-size:10px;font-weight:600;color:var(--tx);margin-bottom:5px;word-break:break-all}
+.fbrow{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px}
+.fbk{color:var(--mt)}.fbv{font-family:var(--fm);color:var(--ac)}
+
+/* LOGIN */
+#login{position:fixed;inset:0;background:rgba(3,6,13,.96);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+#login.gone{display:none}
+.loginbox{background:var(--s1);border:1px solid var(--b2);border-radius:var(--rxl);padding:28px;width:380px;animation:fadeUp .25s ease}
+.rolegrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:18px}
+.rolecard{background:var(--bg);border:1px solid var(--b1);border-radius:var(--r);padding:9px;cursor:pointer;transition:all .12s}
+.rolecard:hover,.rolecard.sel{border-color:var(--ac);background:rgba(0,220,255,.07)}
+.rolecard .ri{font-size:16px;margin-bottom:3px}
+.rolecard .rn{font-size:10px;font-weight:600;color:var(--tx)}
+.rolecard.sel .rn{color:var(--ac)}
+.linp{width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:var(--r);padding:9px 11px;color:var(--tx);font-size:12px;font-family:var(--fm);margin-bottom:9px}
+.linp:focus{border-color:var(--ac)}
+.lbtn{width:100%;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:var(--r);padding:11px;color:var(--bg);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.lbtn:hover{opacity:.85}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);padding:9px 16px;font-size:10px;color:var(--tx);z-index:9999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<!-- LOGIN -->
+<div id="login">
+  <div class="loginbox">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="width:46px;height:46px;background:linear-gradient(135deg,var(--ac),var(--wm));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px">⬡</div>
+      <div style="font-size:17px;font-weight:700;font-family:var(--fm);margin-bottom:3px">TWINCORE</div>
+      <div style="font-size:10px;color:var(--mt)">Digital Twin Platform · BIM-Linked Facilities Management</div>
+    </div>
+    <div style="font-size:8px;text-transform:uppercase;letter-spacing:2px;color:var(--dm);margin-bottom:8px">Sign in as</div>
+    <div class="rolegrid" id="rolegrid">
+      <div class="rolecard sel" data-role="manager" onclick="selRole(this)"><div class="ri">🏢</div><div class="rn">Facility Manager</div></div>
+      <div class="rolecard" data-role="technician" onclick="selRole(this)"><div class="ri">🔧</div><div class="rn">Maintenance Tech</div></div>
+      <div class="rolecard" data-role="iot" onclick="selRole(this)"><div class="ri">⚡</div><div class="rn">IoT Engineer</div></div>
+      <div class="rolecard" data-role="executive" onclick="selRole(this)"><div class="ri">📊</div><div class="rn">Executive</div></div>
+    </div>
+    <input class="linp" type="email" value="admin@twincore.io" placeholder="Email"/>
+    <input class="linp" type="password" value="Admin1234!" placeholder="Password"/>
+    <button class="lbtn" onclick="doLogin()">Sign In →</button>
+    <div style="text-align:center;font-size:9px;color:var(--dm);margin-top:10px">v2.2.0 · Static Demo · IFC/OBJ/GLB viewer built-in · All data mock</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="hdr">
+    <div class="logo">
+      <div class="logo-mark">⬡</div>
+      <div><div class="logo-name">TWINCORE</div><div class="logo-tag">Digital Twin Platform</div></div>
+    </div>
+    <div class="hdiv"></div>
+    <div class="hpill"><div class="hdot hdot-err"></div><span>1 Critical</span></div>
+    <div class="hpill"><div class="hdot hdot-warn"></div><span>2 Warnings</span></div>
+    <div class="hpill" id="bimloadpill" style="display:none"><div class="hdot hdot-ok"></div><span id="bimloadtxt">—</span></div>
+    <div class="hdr-r">
+      <div class="htime" id="hclock">--:--:--</div>
+      <div class="ubtn" onclick="doLogout()">
+        <div class="uav" id="uav">MS</div>
+        <div class="unm" id="unm">Facility Manager</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="shell">
+    <div id="sidebar">
+      <div class="sb-sec">Facility</div>
+      <div class="nav active" data-page="overview" onclick="goPage('overview',this)"><span class="nav-ic">⬡</span>Overview</div>
+      <div class="nav" data-page="bim" onclick="goPage('bim',this)"><span class="nav-ic">📐</span>BIM Viewer<span style="margin-left:auto;font-size:8px;font-family:var(--fm);color:var(--ac)">3D+Plan</span></div>
+      <div class="nav" data-page="energy" onclick="goPage('energy',this)"><span class="nav-ic">⚡</span>Energy</div>
+      <div class="nav" data-page="workorders" onclick="goPage('workorders',this)"><span class="nav-ic">⊡</span>Work Orders<span class="nbadge nbr">4</span></div>
+      <div class="sb-sec">Intelligence</div>
+      <div class="nav" data-page="iot" onclick="goPage('iot',this)"><span class="nav-ic">📡</span>IoT Alerts<span class="nbadge nby">2</span></div>
+      <div class="nav" data-page="ml" onclick="goPage('ml',this)"><span class="nav-ic">∑</span>ML Predict</div>
+      <div class="nav" data-page="executive" onclick="goPage('executive',this)"><span class="nav-ic">📊</span>Executive</div>
+      <div class="sb-sec">System</div>
+      <div class="nav" data-page="users" onclick="goPage('users',this)"><span class="nav-ic">👥</span>Users</div>
+      <div class="nav" data-page="arch" onclick="goPage('arch',this)"><span class="nav-ic">⊛</span>Architecture</div>
+      <div class="sb-foot">
+        <div class="upzone" id="sbdrop" onclick="document.getElementById('fileinp').click()">
+          <span class="upzone-lbl">⬆ Load BIM File</span>
+          <span class="upzone-sub">IFC · OBJ · GLB · GLTF · drag & drop</span>
+        </div>
+        <input type="file" id="fileinp" accept=".ifc,.obj,.glb,.gltf,.rvt,.nwd" style="display:none" onchange="handleFileInput(this)"/>
+      </div>
+    </div>
+
+    <div id="main">
+      <!-- SCROLL WRAPPER for normal pages -->
+      <div class="scroll-page" id="scrollwrap">
+
+        <!-- OVERVIEW -->
+        <div id="page-overview" class="page active">
+          <div class="krow">
+            <div class="kpi" style="--kc:var(--gn)"><div class="klbl">Operational</div><span class="kval">7</span><span class="kunit">assets</span></div>
+            <div class="kpi" style="--kc:var(--yw)"><div class="klbl">Warnings</div><span class="kval">2</span><span class="kunit">assets</span></div>
+            <div class="kpi" style="--kc:var(--rd)"><div class="klbl">Critical</div><span class="kval">1</span><span class="kunit">assets</span></div>
+            <div class="kpi" style="--kc:var(--wm)"><div class="klbl">Open WOs</div><span class="kval">4</span><span class="kunit">orders</span></div>
+          </div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="chd">Schematic Floor Plan <span class="chd-sub">Click asset to inspect · switch floors below</span></div>
+            <div class="ftabs" id="floortabs"></div>
+            <div class="planwrap" id="planwrap">
+              <svg class="plansvg" viewBox="0 0 100 50" preserveAspectRatio="none">
+                <defs><pattern id="pg" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M5 0L0 0 0 5" fill="none" stroke="#111A2E" stroke-width=".2"/></pattern></defs>
+                <rect width="100" height="50" fill="url(#pg)"/>
+                <rect x="6" y="5" width="88" height="41" fill="none" stroke="#182438" stroke-width=".4" stroke-dasharray="1.5,.8"/>
+                <rect x="8" y="7" width="35" height="21" fill="rgba(0,220,255,.03)" stroke="#182438" stroke-width=".25"/>
+                <rect x="45" y="7" width="47" height="13" fill="rgba(255,92,40,.03)" stroke="#182438" stroke-width=".25"/>
+                <rect x="8" y="30" width="23" height="13" fill="rgba(0,238,136,.03)" stroke="#182438" stroke-width=".25"/>
+                <rect x="33" y="21" width="59" height="22" fill="rgba(0,220,255,.02)" stroke="#182438" stroke-width=".25"/>
+                <text x="11" y="12" font-size="2" fill="#142030" font-family="monospace">MECHANICAL</text>
+                <text x="51" y="11" font-size="2" fill="#142030" font-family="monospace">OFFICE A</text>
+                <text x="9" y="36" font-size="2" fill="#142030" font-family="monospace">LOBBY</text>
+                <text x="46" y="26" font-size="2" fill="#142030" font-family="monospace">OPEN PLAN</text>
+                <text x="92" y="9" font-size="2.5" fill="#142030" font-family="monospace" text-anchor="middle">N</text>
+                <line x1="92" y1="9.5" x2="92" y2="11.5" stroke="#142030" stroke-width=".3"/>
+                <text x="3" y="4" font-size="1.8" fill="#142030" font-family="monospace" id="planflsvg">FL: L1</text>
+              </svg>
+              <div id="hotspots"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chd">Asset Registry <span class="chd-sub" id="assetcountlbl">10 assets</span></div>
+            <div class="tw"><table><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Floor</th><th>Status</th><th>Health</th><th>RUL</th><th>Next PM</th></tr></thead><tbody id="assettbody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ENERGY -->
+        <div id="page-energy" class="page">
+          <div class="krow">
+            <div class="kpi" style="--kc:var(--ac)"><div class="klbl">Today's Usage</div><span class="kval">1,240</span><span class="kunit">kWh</span></div>
+            <div class="kpi" style="--kc:var(--yw)"><div class="klbl">Peak Demand</div><span class="kval">87.3</span><span class="kunit">kW</span></div>
+            <div class="kpi" style="--kc:var(--gn)"><div class="klbl">Carbon Output</div><span class="kval">42.1</span><span class="kunit">kg CO₂</span></div>
+            <div class="kpi" style="--kc:var(--pu)"><div class="klbl">Efficiency</div><span class="kval">B+</span></div>
+          </div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="chd">24-Hour Sensor Data</div>
+            <div class="mtabs">
+              <button class="mtab active" onclick="switchMetric('energy',this)">Energy</button>
+              <button class="mtab" onclick="switchMetric('temp',this)">Temperature</button>
+              <button class="mtab" onclick="switchMetric('occ',this)">Occupancy</button>
+              <button class="mtab" onclick="switchMetric('co2',this)">CO₂</button>
+            </div>
+            <div class="bchart" id="echart" style="height:110px"></div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--dm);font-family:var(--fm);margin-top:4px"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+            <div class="card"><div class="chd">Energy by System</div><div id="energybkdn"></div></div>
+            <div class="card"><div class="chd">This Week vs Last</div><div id="weeklycmp"></div></div>
+          </div>
+        </div>
+
+        <!-- WORK ORDERS -->
+        <div id="page-workorders" class="page">
+          <div class="wofbar" id="wofbar"></div>
+          <div id="wolist"></div>
+        </div>
+
+        <!-- IoT -->
+        <div id="page-iot" class="page">
+          <div class="krow">
+            <div class="kpi" style="--kc:var(--ac)"><div class="klbl">Active Rules</div><span class="kval">5</span></div>
+            <div class="kpi" style="--kc:var(--rd)"><div class="klbl">Triggered</div><span class="kval">2</span></div>
+            <div class="kpi" style="--kc:var(--gn)"><div class="klbl">Online Sensors</div><span class="kval">24</span></div>
+            <div class="kpi" style="--kc:var(--yw)"><div class="klbl">Last Event</div><div style="font-size:11px;font-family:var(--fm);color:var(--tx);margin-top:3px">2 min ago</div></div>
+          </div>
+          <div class="card" style="margin-bottom:14px"><div class="chd">Alert Rules Engine</div><div id="ruleslist"></div></div>
+          <div class="card"><div class="chd">Live Sensor Feed</div><div class="slivegrid" id="slivegrid"></div></div>
+        </div>
+
+        <!-- ML -->
+        <div id="page-ml" class="page">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="card">
+              <div class="chd">Inference Engine <span class="chd-sub" id="mlassetlbl">PUMP-02</span></div>
+              <div class="slrow"><div class="sltop"><span style="color:var(--mt)">Vibration (g-rms)</span><span style="color:var(--ac);font-family:var(--fm)" id="v-vib">3.8</span></div><input type="range" min="0" max="8" step=".1" value="3.8" oninput="mlSlider('vib',this.value)"></div>
+              <div class="slrow"><div class="sltop"><span style="color:var(--mt)">Temperature (°C)</span><span style="color:var(--ac);font-family:var(--fm)" id="v-temp">62</span></div><input type="range" min="20" max="100" step="1" value="62" oninput="mlSlider('temp',this.value)"></div>
+              <div class="slrow"><div class="sltop"><span style="color:var(--mt)">Runtime (hrs)</span><span style="color:var(--ac);font-family:var(--fm)" id="v-runtime">18400</span></div><input type="range" min="0" max="30000" step="100" value="18400" oninput="mlSlider('runtime',this.value)"></div>
+              <div class="slrow"><div class="sltop"><span style="color:var(--mt)">Current Draw (A)</span><span style="color:var(--ac);font-family:var(--fm)" id="v-current">8.4</span></div><input type="range" min="0" max="20" step=".1" value="8.4" oninput="mlSlider('current',this.value)"></div>
+              <div class="slrow"><div class="sltop"><span style="color:var(--mt)">Acoustic (dB)</span><span style="color:var(--ac);font-family:var(--fm)" id="v-noise">74</span></div><input type="range" min="40" max="100" step="1" value="74" oninput="mlSlider('noise',this.value)"></div>
+              <button class="mlbtn" id="mlbtn" onclick="runML()">▶ Run Prediction</button>
+            </div>
+            <div class="card"><div class="chd">Prediction Output</div><div id="mlout" style="color:var(--mt);font-size:11px;text-align:center;padding:36px 0">Configure inputs and run →</div></div>
+          </div>
+          <div class="card" style="margin-top:14px"><div class="chd">RUL Timeline — All Assets</div><div id="rultl"></div></div>
+        </div>
+
+        <!-- EXECUTIVE -->
+        <div id="page-executive" class="page">
+          <div class="krow">
+            <div class="kpi" style="--kc:var(--ac)"><div class="klbl">Asset Portfolio</div><span class="kval">10</span></div>
+            <div class="kpi" style="--kc:var(--gn)"><div class="klbl">Avg Health</div><span class="kval">81</span><span class="kunit">%</span></div>
+            <div class="kpi" style="--kc:var(--wm)"><div class="klbl">Monthly Spend</div><span class="kval">$14K</span></div>
+            <div class="kpi" style="--kc:var(--pu)"><div class="klbl">Savings YTD</div><span class="kval">$84K</span></div>
+          </div>
+          <div class="execgrid">
+            <div class="card"><div class="chd">Health Distribution</div><div id="healthdist"></div></div>
+            <div class="card"><div class="chd">Maintenance Spend YTD</div><div id="spendchart"></div></div>
+          </div>
+          <div class="card"><div class="chd">Predictive Maintenance Forecast</div><div id="pmforecast"></div></div>
+        </div>
+
+        <!-- USERS -->
+        <div id="page-users" class="page">
+          <div class="card"><div class="chd">Platform Users</div>
+            <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Floors</th><th>Last Login</th><th>Status</th></tr></thead><tbody id="userstbody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ARCH -->
+        <div id="page-arch" class="page">
+          <div class="card" style="margin-bottom:13px"><div class="chd">System Architecture</div><div id="archlayers"></div></div>
+          <div class="card"><div class="chd">Recommended Tech Stack</div><div id="techstack"></div></div>
+        </div>
+      </div><!-- /scrollwrap -->
+
+      <!-- BIM VIEWER (full height, outside scroll) -->
+      <div id="page-bim" class="fullpage">
+        <!-- LEFT -->
+        <div id="bimleft">
+          <div class="bvtabs">
+            <button class="bvtab active" onclick="bimMode('3d',this)">3D Model</button>
+            <button class="bvtab" onclick="bimMode('plan',this)">Floor Plan</button>
+            <button class="bvtab" onclick="bimMode('section',this)">Section</button>
+          </div>
+          <div style="padding:6px 10px">
+            <div class="upzone" id="bimleftdrop" onclick="document.getElementById('fileinp').click()">
+              <span class="upzone-lbl" style="font-size:11px">⬆ Upload BIM File</span>
+              <span class="upzone-sub">IFC · OBJ · GLB · GLTF · drag & drop</span>
+              <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:6px">
+                <span style="background:var(--acg);border:1px solid rgba(0,220,255,.25);border-radius:3px;padding:1px 5px;font-size:8px;font-family:var(--fm);color:var(--ac)">IFC</span>
+                <span style="background:var(--acg);border:1px solid rgba(0,220,255,.25);border-radius:3px;padding:1px 5px;font-size:8px;font-family:var(--fm);color:var(--ac)">OBJ</span>
+                <span style="background:var(--acg);border:1px solid rgba(0,220,255,.25);border-radius:3px;padding:1px 5px;font-size:8px;font-family:var(--fm);color:var(--ac)">GLB</span>
+                <span style="background:var(--acg);border:1px solid rgba(0,220,255,.25);border-radius:3px;padding:1px 5px;font-size:8px;font-family:var(--fm);color:var(--ac)">GLTF</span>
+                <span style="background:var(--s2);border:1px solid var(--b1);border-radius:3px;padding:1px 5px;font-size:8px;font-family:var(--fm);color:var(--mt)">RVT*</span>
+              </div>
+              <div style="font-size:8px;color:var(--dm);margin-top:3px">*RVT → export IFC from Revit first</div>
+            </div>
+          </div>
+          <div style="padding:4px 12px 4px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dm);font-weight:700;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--b1)">
+            <span>Model Tree</span><span style="color:var(--mt);font-family:var(--fm)" id="treecnt">—</span>
+          </div>
+          <div class="bimtree" id="bimtree"><div style="padding:14px 12px;font-size:10px;color:var(--mt);text-align:center;line-height:1.7">Load a BIM file to see the element tree</div></div>
+          <div style="padding:4px 12px;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dm);font-weight:700;border-top:1px solid var(--b1)">Floors / Levels</div>
+          <div id="floorlistbim" style="overflow-y:auto;max-height:160px;flex-shrink:0"><div style="padding:10px 12px;font-size:10px;color:var(--mt);text-align:center">Load a file</div></div>
+        </div>
+        <!-- CENTER -->
+        <div id="bimcenter">
+          <div id="bimarea">
+            <div class="bimempty" id="bimempty">
+              <div class="bimempty-icon">🏗</div>
+              <div class="bimempty-title">No BIM Model Loaded</div>
+              <div class="bimempty-sub">Upload an IFC, OBJ or GLB/GLTF — your building renders in full 3D with floor plans extracted automatically</div>
+              <div class="bimempty-arr">←</div>
+            </div>
+            <div class="dropov" id="dropov"><div style="font-size:16px;color:var(--ac);text-align:center">📁<br/>Drop to load</div></div>
+            <div class="loadov hidden" id="loadov">
+              <div class="spinner"></div>
+              <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:4px" id="loadtitle">Processing…</div>
+              <div style="font-size:10px;color:var(--mt)" id="loadsub">Parsing geometry</div>
+              <div class="loadbar"><div class="loadfill" id="loadfill"></div></div>
+            </div>
+            <canvas id="threecanvas"></canvas>
+            <canvas id="plancanvas"></canvas>
+            <canvas id="sectcanvas"></canvas>
+            <div class="measureov" id="measureov">
+              <div style="color:var(--yw);font-weight:700;margin-bottom:3px">📏 Measure Mode</div>
+              <div id="measuretxt">Click two points on model</div>
+            </div>
+            <div class="bimtbar" id="bimtbar" style="display:none">
+              <button class="bimtb active" onclick="setShade('solid',this)">Solid</button>
+              <button class="bimtb" onclick="setShade('wire',this)">Wire</button>
+              <button class="bimtb" onclick="setShade('xray',this)">X-Ray</button>
+              <button class="bimtb" id="isolatebtn" onclick="toggleIsolate()">Isolate</button>
+              <button class="bimtb" id="measurebtn" onclick="toggleMeasure()">Measure</button>
+              <button class="bimtb" onclick="fitAll()">Fit All</button>
+              <button class="bimtb" onclick="resetCam()">Reset</button>
+            </div>
+            <div class="bimvctrls" id="bimvctrls" style="display:none">
+              <button class="bimvc" title="Top" onclick="snapCam('top')">⊤</button>
+              <button class="bimvc" title="Front" onclick="snapCam('front')">↑</button>
+              <button class="bimvc" title="Right" onclick="snapCam('right')">→</button>
+              <button class="bimvc" title="Iso" onclick="snapCam('iso')">⊡</button>
+              <button class="bimvc" onclick="zoomD(1.2)">+</button>
+              <button class="bimvc" onclick="zoomD(.8)">−</button>
+            </div>
+            <div class="bimhud" id="bimhud"></div>
+          </div>
+        </div>
+        <!-- RIGHT -->
+        <div id="bimright">
+          <div class="rptabs">
+            <button class="rpt active" onclick="switchRTab('props',this)">Properties</button>
+            <button class="rpt" onclick="switchRTab('assets',this)">Assets</button>
+            <button class="rpt" onclick="switchRTab('clip',this)">Clip</button>
+          </div>
+          <div id="rtab-props">
+            <div id="fileinfobox"></div>
+            <div id="propsarea"><div style="padding:14px 13px;font-size:10px;color:var(--mt);line-height:1.7">Select an element in the viewer to inspect its IFC properties and dimensions</div></div>
+          </div>
+          <div id="rtab-assets" style="display:none">
+            <div style="padding:7px 13px;font-size:9px;color:var(--mt)">Linked facility assets — click to highlight in model</div>
+            <div id="assetrplist"></div>
+          </div>
+          <div id="rtab-clip" style="display:none">
+            <div class="clippanel">
+              <div class="cliptitle">Clipping Planes</div>
+              <div class="cliprow"><span class="clipax" style="color:var(--ac)">X</span><input type="range" id="cx" min="-1" max="1" step=".01" value="1" oninput="doClip()" style="flex:1"/><span class="clipv" id="cxv">off</span></div>
+              <div class="cliprow"><span class="clipax" style="color:var(--gn)">Y</span><input type="range" id="cy" min="-1" max="1" step=".01" value="1" oninput="doClip()" style="flex:1"/><span class="clipv" id="cyv">off</span></div>
+              <div class="cliprow"><span class="clipax" style="color:var(--yw)">Z</span><input type="range" id="cz" min="-1" max="1" step=".01" value="1" oninput="doClip()" style="flex:1"/><span class="clipv" id="czv">off</span></div>
+              <button onclick="resetClip()" style="width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:5px;color:var(--mt);font-size:9px;margin-top:3px;cursor:pointer">Reset</button>
+            </div>
+            <div class="clippanel"><div class="cliptitle">Floor Isolation</div><div id="flooriso"></div></div>
+            <div class="clippanel"><div class="cliptitle">Element Filters</div><div id="typefilters"></div></div>
+          </div>
+        </div>
+      </div><!-- /page-bim -->
+    </div><!-- /main -->
+  </div><!-- /shell -->
+</div><!-- /app -->
+
+<!-- ASSET SLIDE PANEL -->
+<div id="apanel">
+  <button class="apcls" onclick="closePanel()">✕</button>
+  <div class="apname" id="apname">—</div>
+  <div class="apsub" id="apsub">—</div>
+  <div id="apbadge" style="margin-bottom:11px"></div>
+  <div class="pg" id="apgrid"></div>
+  <div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px"><span style="color:var(--mt)">Health Score</span><span id="aphval" style="font-family:var(--fm);font-weight:700"></span></div>
+    <div class="hb"><div class="hbf" id="aphbar"></div></div>
+  </div>
+  <div id="apsensors"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="hdot hdot-ok"></div><span id="toastmsg"></span></div>
+<script>
+// ═══════════════════════════════ DATA ═══════════════════════════════
+const FLOORS=['RF','L5','L4','L3','L2','L1','GF','B1','B2'];
+const FL={'RF':'Roof','L5':'Level 5','L4':'Level 4','L3':'Level 3','L2':'Level 2','L1':'Level 1','GF':'Ground','B1':'Basement 1','B2':'Basement 2'};
+const ASSETS=[
+  {id:'A001',name:'AHU-01',type:'HVAC',floor:'L1',x:16,y:24,status:'operational',health:94,rul:2847,temp:18.2,pm:'2026-07-12',brand:'Carrier',model:'39HQ',yr:2020,p:[0,1.2,0]},
+  {id:'A002',name:'ELEV-01',type:'Elevator',floor:'GF',x:48,y:54,status:'warning',health:67,rul:892,temp:null,pm:'2026-05-30',brand:'Otis',model:'Gen2',yr:2018,p:[2,0,0]},
+  {id:'A003',name:'CHILLER-01',type:'Cooling',floor:'B1',x:28,y:42,status:'operational',health:88,rul:5210,temp:6.5,pm:'2026-06-20',brand:'Trane',model:'CGAX180',yr:2019,p:[-2,-.8,1]},
+  {id:'A004',name:'PUMP-02',type:'Plumbing',floor:'B1',x:63,y:37,status:'critical',health:31,rul:124,temp:null,pm:'OVERDUE',brand:'Grundfos',model:'CM5-5',yr:2017,p:[1,-.8,-1]},
+  {id:'A005',name:'FCU-L2-04',type:'HVAC',floor:'L2',x:71,y:26,status:'operational',health:99,rul:8930,temp:21.0,pm:'2026-08-01',brand:'Daikin',model:'FWB100',yr:2023,p:[-1,.8,1]},
+  {id:'A006',name:'GEN-01',type:'Power',floor:'B2',x:78,y:62,status:'standby',health:100,rul:null,temp:null,pm:'2026-07-15',brand:'Cummins',model:'C150D5',yr:2021,p:[2.5,-.8,0]},
+  {id:'A007',name:'FIRE-SYS',type:'Safety',floor:'L1',x:55,y:17,status:'operational',health:100,rul:null,temp:null,pm:'2026-10-30',brand:'Notifier',model:'NFS2-640',yr:2020,p:[0,1.2,2]},
+  {id:'A008',name:'BMS-CTRL',type:'Controls',floor:'L3',x:34,y:68,status:'operational',health:82,rul:3400,temp:null,pm:'2026-09-01',brand:'Siemens',model:'Desigo CC',yr:2022,p:[-1.5,2,0]},
+  {id:'A009',name:'FCU-L3-02',type:'HVAC',floor:'L3',x:22,y:42,status:'warning',health:58,rul:610,temp:23.8,pm:'2026-05-28',brand:'Daikin',model:'FWB080',yr:2019,p:[.5,2,1.5]},
+  {id:'A010',name:'TRANS-01',type:'Power',floor:'B2',x:40,y:72,status:'operational',health:91,rul:9200,temp:null,pm:'2026-11-01',brand:'ABB',model:'RESIBLOC',yr:2021,p:[-2.5,-.8,.5]},
+];
+const WOS=[
+  {id:'WO-2847',asset:'PUMP-02',title:'Bearing replacement — urgent failure risk',pri:'urgent',status:'open',who:'J. Santos',due:'2026-05-24',est:4},
+  {id:'WO-2831',asset:'ELEV-01',title:'Annual safety inspection',pri:'high',status:'in-progress',who:'T. Reyes',due:'2026-05-30',est:8},
+  {id:'WO-2819',asset:'AHU-01',title:'Q2 filter replacement',pri:'normal',status:'scheduled',who:'M. Cruz',due:'2026-06-10',est:2},
+  {id:'WO-2810',asset:'FCU-L3-02',title:'Coil cleaning & performance check',pri:'high',status:'open',who:'T. Reyes',due:'2026-05-27',est:3},
+  {id:'WO-2801',asset:'BMS-CTRL',title:'Firmware upgrade to v4.2.1',pri:'low',status:'scheduled',who:'L. Tan',due:'2026-06-15',est:6},
+  {id:'WO-2798',asset:'CHILLER-01',title:'Refrigerant level check',pri:'normal',status:'completed',who:'J. Santos',due:'2026-05-20',est:2},
+];
+const RULES=[
+  {name:'Low Health Score',asset:'ANY',metric:'health',op:'<',thr:40,sev:'urgent',on:true,hit:true},
+  {name:'Critical RUL',asset:'ANY',metric:'rul',op:'<',thr:200,sev:'urgent',on:true,hit:true},
+  {name:'High Supply Temp',asset:'AHU-01',metric:'temp',op:'>',thr:26,sev:'high',on:true,hit:false},
+  {name:'Energy Spike',asset:'Building',metric:'energy',op:'>',thr:95,sev:'normal',on:false,hit:false},
+  {name:'High Occupancy',asset:'Building',metric:'occupancy',op:'>',thr:85,sev:'low',on:true,hit:false},
+];
+const S24=Array.from({length:24},(_,i)=>({
+  h:String(i).padStart(2,'0'),
+  energy:+(45+Math.sin(i*.3+1)*20+(i>8&&i<18?32:0)+Math.random()*4).toFixed(1),
+  temp:+(20+Math.sin(i*.4)*3+(i>9&&i<19?2:0)+Math.random()*.4).toFixed(1),
+  occ:i>=8&&i<=19?Math.round(40+Math.sin((i-8)*.5)*38):Math.round(Math.random()*6),
+  co2:Math.round(400+(i>=8&&i<=18?250*Math.sin((i-8)*.35):20)+Math.random()*30),
+}));
+const USERS=[
+  {name:'Maria Santos',email:'m.santos@twincore.io',role:'manager',floors:'All',last:'2026-05-25 09:12',av:'MS',c:'#00DCFF'},
+  {name:'Tom Reyes',email:'t.reyes@twincore.io',role:'technician',floors:'B1,B2,GF,L1',last:'2026-05-25 08:45',av:'TR',c:'#FF5C28'},
+  {name:'Linda Tan',email:'l.tan@twincore.io',role:'iot',floors:'All',last:'2026-05-24 17:30',av:'LT',c:'#FFD000'},
+  {name:'David Kim',email:'d.kim@twincore.io',role:'executive',floors:'All',last:'2026-05-23 14:00',av:'DK',c:'#9B6DFF'},
+  {name:'James Wu',email:'j.wu@twincore.io',role:'tenant',floors:'L4,L5',last:'2026-05-25 08:00',av:'JW',c:'#00EE88'},
+];
+const SC={operational:'#00EE88',warning:'#FFD000',critical:'#FF2244',standby:'#3D6080'};
+
+// ═══════════════════════════════ STATE ══════════════════════════════
+let curRole='manager',curFloor='L1',curMetric='energy',woFil='all';
+let mlVals={vib:3.8,temp:62,runtime:18400,current:8.4,noise:74};
+let curBimMode='3d',curRTab='props';
+// Three.js
+let scene,camera,renderer,raycaster,mouse;
+let ctrl={down:false,lx:0,ly:0,mode:'orbit'};
+let camTh=Math.PI/4,camPh=Math.PI/3.5,camR=20,camTgt=new THREE.Vector3();
+let mdlGroup=null,meshes=[],origMats=new Map(),activeMesh=null;
+let mkrs=[],mdlBBox=null;
+let shade='solid',isolOn=false,msrOn=false;
+let msrPts=[],msrObjs=[];
+let flData=[],threeReady=false;
+let fc=0,ft=0,fps=0;
+
+// ══════════════════════ CLOCK & AUTH ════════════════════════════════
+setInterval(()=>document.getElementById('hclock').textContent=new Date().toLocaleTimeString(),1000);
+function selRole(el){document.querySelectorAll('.rolecard').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+function doLogin(){
+  const sel=document.querySelector('.rolecard.sel');
+  curRole=sel?sel.dataset.role:'manager';
+  const nm={manager:'MS',technician:'TR',iot:'LT',executive:'DK',tenant:'JW'}[curRole]||'TC';
+  document.getElementById('uav').textContent=nm;
+  document.getElementById('unm').textContent=sel?sel.querySelector('.rn').textContent:'Manager';
+  document.getElementById('login').classList.add('gone');
+  initDashboard();
+}
+function doLogout(){if(confirm('Sign out?'))document.getElementById('login').classList.remove('gone');}
+
+// ══════════════════════ NAVIGATION ══════════════════════════════════
+function goPage(page,el){
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.fullpage').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+
+  const sw=document.getElementById('scrollwrap');
+  const bimp=document.getElementById('page-bim');
+
+  if(page==='bim'){
+    sw.style.display='none';
+    bimp.classList.add('active');
+    if(!threeReady){initThree();threeReady=true;}
+    setTimeout(resizeBim,50);
+  } else {
+    sw.style.display='';
+    bimp.classList.remove('active');
+    document.getElementById('page-'+page).classList.add('active');
+    if(page==='energy')renderEchart();
+    if(page==='ml')renderRUL();
+    if(page==='executive')renderExec();
+    if(page==='users')renderUsers();
+    if(page==='arch')renderArch();
+    if(page==='iot')renderSensLive();
+    if(page==='workorders')renderWOs();
+  }
+}
+
+// ══════════════════════ INIT DASHBOARD ══════════════════════════════
+function initDashboard(){
+  renderFloorTabs();renderHotspots();renderAssetTable();
+  renderWOs();renderAlertRules();renderEbkdn();renderWeekly();renderEchart();
+  renderAssetRPList();
+}
+
+// ══════════════════════ SCHEMATIC PLAN ══════════════════════════════
+function renderFloorTabs(){
+  const c=document.getElementById('floortabs');
+  c.innerHTML=FLOORS.map(f=>`<button class="ftab${f===curFloor?' active':''}" onclick="switchFloor('${f}',this)">${f} <span style="opacity:.55;font-size:8px">${FL[f].split(' ')[0]}</span></button>`).join('');
+}
+function switchFloor(f,btn){
+  curFloor=f;document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('planflsvg').textContent='FL: '+f;renderHotspots();
+}
+function renderHotspots(){
+  const d=document.getElementById('hotspots');
+  const fa=ASSETS.filter(a=>a.floor===curFloor);
+  const IC={HVAC:'◈',Elevator:'⊡',Cooling:'❄',Plumbing:'⊙',Power:'⚡',Safety:'⊛',Controls:'⬡'};
+  if(!fa.length){d.innerHTML=`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--dm);font-family:var(--fm);font-size:10px">No assets on ${curFloor}</div>`;return;}
+  d.innerHTML=fa.map(a=>{
+    const sc={operational:'',warning:' spotw',critical:' spotc',standby:' spots'}[a.status]||'';
+    return`<div class="spot${sc}" style="left:${a.x}%;top:${a.y}%" onclick="showAsset('${a.id}')">${IC[a.type]||'●'} ${a.name}</div>`;
+  }).join('');
+}
+function renderAssetTable(){
+  document.getElementById('assettbody').innerHTML=ASSETS.map(a=>{
+    const hc=a.health>75?'var(--gn)':a.health>40?'var(--yw)':'var(--rd)';
+    const bm={operational:'bop',warning:'bwn',critical:'bcr',standby:'bst'};
+    return`<tr class="row" onclick="showAsset('${a.id}')">
+      <td class="mono" style="color:var(--dm)">${a.id}</td><td style="font-weight:600">${a.name}</td>
+      <td style="color:var(--mt)">${a.type}</td><td class="mono" style="color:var(--mt)">${a.floor}</td>
+      <td><span class="badge ${bm[a.status]||'bst'}"><span class="sdot"></span>${a.status}</span></td>
+      <td style="min-width:90px"><div class="hbw"><div class="hb"><div class="hbf" style="width:${a.health}%;background:${hc}"></div></div><span class="mono" style="font-size:9px;color:var(--mt)">${a.health}%</span></div></td>
+      <td class="mono" style="color:${a.rul&&a.rul<500?'var(--rd)':a.rul&&a.rul<2000?'var(--yw)':'var(--mt)'};font-size:10px">${a.rul?a.rul.toLocaleString()+'h':'—'}</td>
+      <td class="mono" style="color:${a.pm==='OVERDUE'?'var(--rd)':'var(--mt)'};font-size:10px">${a.pm}</td></tr>`;
+  }).join('');
+}
+
+// ══════════════════════ ASSET PANEL ═════════════════════════════════
+function showAsset(id){
+  const a=ASSETS.find(x=>x.id===id);if(!a)return;
+  document.getElementById('apname').textContent=a.name;
+  document.getElementById('apsub').textContent=`${a.type} · ${a.id} · Floor ${a.floor}`;
+  const bm={operational:'bop',warning:'bwn',critical:'bcr',standby:'bst'};
+  document.getElementById('apbadge').innerHTML=`<span class="badge ${bm[a.status]}"><span class="sdot"></span>${a.status}</span>`;
+  document.getElementById('apgrid').innerHTML=[['Brand',a.brand],['Model',a.model],['Installed',a.yr],['Next PM',a.pm],['Floor',FL[a.floor]||a.floor],['Status',a.status]].map(([k,v])=>`<div class="pf"><div class="pflbl">${k}</div><div class="pfval" style="color:${k==='Next PM'&&v==='OVERDUE'?'var(--rd)':'var(--tx)'}">${v}</div></div>`).join('');
+  const hc=a.health>75?'var(--gn)':a.health>40?'var(--yw)':'var(--rd)';
+  document.getElementById('aphval').textContent=a.health+'%';document.getElementById('aphval').style.color=hc;
+  document.getElementById('aphbar').style.cssText=`width:${a.health}%;background:${hc}`;
+  const sr=[];if(a.temp!==null)sr.push(['Live Temp',a.temp+'°C']);if(a.rul)sr.push(['RUL',a.rul.toLocaleString()+' hrs']);
+  document.getElementById('apsensors').innerHTML=sr.map(([l,v])=>`<div class="srow"><span class="slbl">${l}</span><span class="sval">${v}</span></div>`).join('');
+  document.getElementById('apanel').classList.add('open');
+}
+function closePanel(){document.getElementById('apanel').classList.remove('open');}
+
+// ══════════════════════ ENERGY ═══════════════════════════════════════
+const MC={energy:{key:'energy',col:'var(--ac)'},temp:{key:'temp',col:'var(--wm)'},occ:{key:'occ',col:'var(--gn)'},co2:{key:'co2',col:'var(--yw)'}};
+function switchMetric(m,btn){curMetric=m;document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderEchart();}
+function renderEchart(){
+  const c=MC[curMetric],vals=S24.map(d=>d[c.key]),mx=Math.max(...vals)||1;
+  document.getElementById('echart').innerHTML=S24.map(d=>{const p=Math.round(d[c.key]/mx*100);return`<div class="bw"><div class="br" style="height:${p}%;background:${c.col}${d[c.key]>mx*.72?'CC':'55'}"></div></div>`;}).join('');
+}
+function renderEbkdn(){
+  const items=[{l:'HVAC',v:42,c:'var(--ac)'},{l:'Lighting',v:28,c:'var(--yw)'},{l:'IT Equipment',v:18,c:'var(--pu)'},{l:'Other',v:12,c:'var(--mt)'}];
+  document.getElementById('energybkdn').innerHTML=items.map(({l,v,c})=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;color:var(--mt)">${l}</span><span style="font-family:var(--fm);font-size:11px;color:${c};font-weight:700">${v}%</span></div><div class="hb"><div class="hbf" style="width:${v}%;background:${c}"></div></div></div>`).join('');
+}
+function renderWeekly(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],tw=[82,91,88,95,87,54,42],lw=[78,85,90,88,82,48,38],mx=95;
+  document.getElementById('weeklycmp').innerHTML=days.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:9px;font-family:var(--fm);color:var(--mt);width:22px">${d}</span><div style="flex:1;height:13px;background:var(--s2);border-radius:3px;overflow:hidden;position:relative"><div style="height:100%;width:${Math.round(lw[i]/mx*100)}%;background:var(--b2);border-radius:3px;position:absolute"></div><div style="height:100%;width:${Math.round(tw[i]/mx*100)}%;background:rgba(0,220,255,.5);border-radius:3px;position:absolute"></div></div><span style="font-size:9px;font-family:var(--fm);color:var(--ac);width:30px;text-align:right">${tw[i]}kW</span></div>`).join('');
+}
+
+// ══════════════════════ WORK ORDERS ═════════════════════════════════
+function renderWOs(){
+  const filts=['all','open','in-progress','urgent','completed'];
+  document.getElementById('wofbar').innerHTML=filts.map(f=>`<button class="wofb${f===woFil?' active':''}" onclick="setWOF('${f}',this)">${f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('');
+  const pc={urgent:'var(--rd)',high:'var(--yw)',normal:'var(--ac)',low:'var(--mt)'};
+  const sc={open:'var(--rd)','in-progress':'var(--yw)',scheduled:'var(--ac)',completed:'var(--gn)'};
+  const fil=woFil==='all'?WOS:WOS.filter(w=>w.status===woFil||w.pri===woFil);
+  document.getElementById('wolist').innerHTML=fil.map(w=>`<div class="wocard"><div><div class="woid">${w.id} <span style="color:${pc[w.pri]};font-size:8px;text-transform:uppercase;margin-left:5px">${w.pri}</span></div><div class="wotitle">${w.title}</div><div class="wometa">Asset: <span style="color:var(--ac)">${w.asset}</span> · ${w.who} · Due ${w.due} · Est. ${w.est}h</div></div><span class="badge" style="background:rgba(255,255,255,.04);color:${sc[w.status]};border:1px solid ${sc[w.status]}44">${w.status.replace('-',' ')}</span></div>`).join('');
+}
+function setWOF(f,btn){woFil=f;document.querySelectorAll('.wofb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderWOs();}
+
+// ══════════════════════ IoT ══════════════════════════════════════════
+function renderAlertRules(){
+  const sc={urgent:'var(--rd)',high:'var(--yw)',normal:'var(--ac)',low:'var(--mt)'};
+  const el=document.getElementById('ruleslist');el.innerHTML='';
+  RULES.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='rulerow';
+    d.innerHTML=`<div style="flex:1"><div style="display:flex;align-items:center;gap:7px;margin-bottom:2px">${r.hit&&r.on?'<div class="tdot"></div>':''}<span style="font-size:12px;font-weight:600;color:var(--tx)">${r.name}</span><span class="badge" style="background:${sc[r.sev]}18;color:${sc[r.sev]};border:1px solid ${sc[r.sev]}33">${r.sev}</span></div><div style="font-size:9px;color:var(--mt)">${r.asset} · ${r.metric} ${r.op} ${r.thr} · <span style="color:${r.hit&&r.on?'var(--rd)':'var(--gn)'}">${r.hit&&r.on?'TRIGGERED':'OK'}</span></div></div><div class="tog${r.on?' on':''}" onclick="togRule(${i},this)"><div class="tok"></div></div>`;
+    el.appendChild(d);
+  });
+}
+function togRule(i,el){RULES[i].on=!RULES[i].on;el.classList.toggle('on');}
+function renderSensLive(){
+  const sl=[{l:'Temp L2',v:'21.0°C',c:'var(--ac)',ok:true},{l:'Temp L3',v:'23.8°C',c:'var(--yw)',ok:false},{l:'CO₂ L1',v:'748 ppm',c:'var(--gn)',ok:true},{l:'Humidity',v:'54%',c:'var(--ac)',ok:true},{l:'Pressure',v:'101.3 kPa',c:'var(--gn)',ok:true},{l:'Occupancy',v:'73%',c:'var(--yw)',ok:true}];
+  document.getElementById('slivegrid').innerHTML=sl.map(s=>`<div class="slive" style="border-left-color:${s.c}"><div style="font-size:8px;color:var(--mt);margin-bottom:2px">${s.l}</div><div style="font-family:var(--fm);font-weight:700;font-size:14px;color:${s.c}">${s.v}</div><div style="font-size:8px;color:${s.ok?'var(--gn)':'var(--yw)'}">${s.ok?'● Normal':'▲ Warning'}</div></div>`).join('');
+  setInterval(()=>{document.querySelectorAll('.slive').forEach(card=>{const v=card.querySelector('[style*="font-weight:700"]');if(v&&v.textContent.includes('°C'))v.textContent=(parseFloat(v.textContent)+(Math.random()-.5)*.2).toFixed(1)+'°C';});},3000);
+}
+
+// ══════════════════════ ML ═══════════════════════════════════════════
+function mlSlider(k,v){mlVals[k]=parseFloat(v);document.getElementById('v-'+k).textContent=v;}
+function runML(){
+  const btn=document.getElementById('mlbtn');btn.disabled=true;btn.textContent='⟳ Running…';
+  setTimeout(()=>{
+    const rf=mlVals.vib/5*.4+Math.max(0,mlVals.temp-50)/50*.3+Math.min(mlVals.runtime/20000,1)*.3;
+    const risk=Math.min(1,Math.max(0,rf)),rul=Math.max(50,Math.round(10000*(1-risk)+Math.random()*200-100));
+    const conf=+(0.86+Math.random()*.12).toFixed(2);
+    const anoms=[];if(mlVals.vib>3.5)anoms.push('Elevated vibration: '+mlVals.vib+' g-rms');if(mlVals.temp>75)anoms.push('High temperature: '+mlVals.temp+'°C');if(mlVals.runtime>18000)anoms.push('High runtime: '+mlVals.runtime.toLocaleString()+' hrs');
+    const rc=risk>.7?'var(--rd)':risk>.4?'var(--yw)':'var(--gn)';
+    const rec=risk>.85?'Immediate intervention required':risk>.6?'Schedule within 2 weeks':risk>.35?'Monitor closely':'Good condition — normal operation';
+    document.getElementById('mlout').innerHTML=`<div class="mlresult"><div class="mlrc" style="border-top:2px solid ${rc}"><div class="mlrl">Predicted RUL</div><div class="mlrv" style="color:${rc}">${rul.toLocaleString()}</div><div class="mlrs">hours remaining</div></div><div class="mlrc" style="border-top:2px solid ${rc}"><div class="mlrl">Risk Score</div><div class="mlrv" style="color:${rc}">${Math.round(risk*100)}%</div><div class="mlrs">failure probability</div></div></div><div style="background:var(--bg);border-radius:var(--r);padding:9px 11px;margin-bottom:9px"><div style="font-size:8px;color:var(--dm);margin-bottom:3px">RECOMMENDATION</div><div style="font-size:11px;color:var(--tx);line-height:1.5">${rec}</div></div><div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px"><span style="color:var(--mt)">Model Confidence</span><span style="color:var(--gn);font-family:var(--fm);font-weight:700">${Math.round(conf*100)}%</span></div><div class="hb"><div class="hbf" style="width:${Math.round(conf*100)}%;background:var(--gn)"></div></div>${anoms.length?'<div style="margin-top:10px">'+anoms.map(a=>`<div class="anomrow">▲ ${a}</div>`).join('')+'</div>':''}`;
+    btn.disabled=false;btn.textContent='▶ Run Prediction';
+  },1400);
+}
+function renderRUL(){
+  document.getElementById('rultl').innerHTML=ASSETS.filter(a=>a.rul).sort((a,b)=>a.rul-b.rul).map(a=>{
+    const p=Math.min(100,Math.round(a.rul/100)),c=a.rul<500?'var(--rd)':a.rul<2000?'var(--yw)':'var(--gn)';
+    return`<div style="margin-bottom:9px;cursor:pointer" onclick="showAsset('${a.id}')"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><div style="display:flex;align-items:center;gap:5px"><span style="font-size:11px;font-weight:600;color:var(--tx)">${a.name}</span><span style="font-size:9px;color:var(--dm)">${a.type}</span></div><span style="font-family:var(--fm);font-size:10px;font-weight:700;color:${c}">${a.rul.toLocaleString()} hrs</span></div><div class="hb" style="height:5px"><div class="hbf" style="width:${p}%;background:${c}"></div></div></div>`;
+  }).join('');
+}
+
+// ══════════════════════ EXECUTIVE ════════════════════════════════════
+function renderExec(){
+  const dist=[{l:'Excellent 90–100%',n:4,c:'var(--gn)'},{l:'Good 70–89%',n:3,c:'var(--ac)'},{l:'Fair 40–69%',n:2,c:'var(--yw)'},{l:'Critical <40%',n:1,c:'var(--rd)'}];
+  document.getElementById('healthdist').innerHTML=dist.map(d=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;color:var(--mt)">${d.l}</span><span style="font-family:var(--fm);font-weight:700;color:${d.c}">${d.n}</span></div><div class="hb"><div class="hbf" style="width:${d.n*10}%;background:${d.c}"></div></div></div>`).join('');
+  const months=['Jan','Feb','Mar','Apr','May'],spend=[22,18,31,25,14],mx=Math.max(...spend);
+  document.getElementById('spendchart').innerHTML=months.map((m,i)=>`<div class="sbrow"><span class="sbm">${m}</span><div class="sbb"><div class="sbf" style="width:${Math.round(spend[i]/mx*100)}%"></div></div><span class="sbv">$${spend[i]}K</span></div>`).join('');
+  const fc=[{n:'PUMP-02',r:'Replace',d:'Now',c:'var(--rd)'},{n:'ELEV-01',r:'Inspect',d:'Jun 1',c:'var(--yw)'},{n:'FCU-L3-02',r:'Service',d:'Jun 5',c:'var(--yw)'},{n:'AHU-01',r:'Filter',d:'Jul 12',c:'var(--ac)'},{n:'BMS-CTRL',r:'Update',d:'Sep 1',c:'var(--gn)'},{n:'GEN-01',r:'Test',d:'Nov',c:'var(--gn)'}];
+  document.getElementById('pmforecast').innerHTML=fc.map(f=>`<div class="fcrow"><div style="width:7px;height:7px;border-radius:50%;background:${f.c};flex-shrink:0"></div><div style="flex:1;font-size:11px;font-weight:600">${f.n}<span style="font-weight:400;color:var(--mt);margin-left:5px;font-size:10px">${f.r}</span></div><div style="font-size:10px;font-family:var(--fm);color:${f.c}">${f.d}</div></div>`).join('');
+}
+
+// ══════════════════════ USERS ═════════════════════════════════════════
+function renderUsers(){
+  document.getElementById('userstbody').innerHTML=USERS.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:7px"><div style="width:26px;height:26px;border-radius:50%;background:${u.c}22;border:1px solid ${u.c}44;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${u.c}">${u.av}</div>${u.name}</div></td><td class="mono" style="font-size:10px;color:var(--mt)">${u.email}</td><td><span class="badge" style="background:${u.c}18;color:${u.c};border:1px solid ${u.c}33">${u.role}</span></td><td class="mono" style="font-size:9px;color:var(--mt)">${u.floors}</td><td class="mono" style="font-size:9px;color:var(--mt)">${u.last}</td><td><span class="badge bop">Active</span></td></tr>`).join('');
+}
+
+// ══════════════════════ ARCHITECTURE ═════════════════════════════════
+function renderArch(){
+  const layers=[
+    {l:'Presentation Layer',c:'#00DCFF',i:['Web App (Next.js 15)','Mobile App (React Native)','AR/VR Interface','Admin Portal']},
+    {l:'API Gateway & Auth',c:'#00EE88',i:['REST/GraphQL API','WebSocket (live)','JWT + RBAC','Rate Limiting']},
+    {l:'Core Services',c:'#FF5C28',i:['BIM Engine (APS/IFC.js)','Digital Twin Sync','Asset Registry','Work Orders','Analytics']},
+    {l:'Integration Layer',c:'#FFD000',i:['IoT Hub (MQTT)','BACnet/Modbus','ERP Connector','GIS/Mapping','APS Forge']},
+    {l:'Data Layer',c:'#9B6DFF',i:['InfluxDB (time-series)','PostgreSQL+PostGIS','BIM Storage','Redis Cache','Elasticsearch']},
+  ];
+  document.getElementById('archlayers').innerHTML=layers.map((l,i)=>`<div class="archlayer" style="--lc:${l.c};background:${l.c}08;border-color:${l.c}"><div class="archlayer-title"><div style="width:5px;height:5px;border-radius:50%;background:${l.c}"></div>L${layers.length-i} · ${l.l}</div><div class="archips">${l.i.map(x=>`<span class="achip">${x}</span>`).join('')}</div>${i<layers.length-1?'<div style="text-align:center;font-size:8px;color:var(--dm);margin-top:6px">↓ API / Events / WebSocket ↓</div>':''}</div>`).join('');
+  const st=[['BIM Engine','Autodesk APS · IFC.js · xeokit'],['Frontend','Next.js 15 · React Native'],['IoT','AWS IoT Core · MQTT 5'],['Time-Series','InfluxDB 2.x · TimescaleDB'],['Database','PostgreSQL 16 + PostGIS'],['ML/AI','Python · scikit-learn · FastAPI'],['Auth','Keycloak · Auth0 (RBAC)'],['Deploy','Docker · Kubernetes · Helm']];
+  document.getElementById('techstack').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${st.map(([k,v])=>`<div style="background:var(--bg);border-radius:var(--r);padding:7px 9px"><div style="font-size:8px;color:var(--dm);margin-bottom:1px;text-transform:uppercase;letter-spacing:.5px">${k}</div><div style="font-size:9px;font-family:var(--fm);color:var(--ac)">${v}</div></div>`).join('')}</div>`;
+}
+
+// ══════════════════════ TOAST ══════════════════════════════════════
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toastmsg').textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ══════════════════════ THREE.JS ══════════════════════════════════
+function initThree(){
+  const canvas=document.getElementById('threecanvas'),area=document.getElementById('bimarea');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.localClippingEnabled=true;
+  const W=area.clientWidth,H=area.clientHeight;
+  renderer.setSize(W,H);
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x03060D);scene.fog=new THREE.FogExp2(0x03060D,.012);
+  camera=new THREE.PerspectiveCamera(45,W/H,.01,2000);camera.position.set(12,8,12);camera.lookAt(0,0,0);
+  scene.add(new THREE.AmbientLight(0x3366AA,.5));
+  const dl=new THREE.DirectionalLight(0xCCEEFF,1.3);dl.position.set(10,20,10);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);scene.add(dl);
+  scene.add(new THREE.DirectionalLight(0x4455AA,.3).position.set(-10,5,-10));
+  scene.add(new THREE.HemisphereLight(0x223355,0x112233,.4));
+  const g=new THREE.GridHelper(50,50,0x0E1628,0x0E1628);g.material.opacity=.5;g.material.transparent=true;scene.add(g);
+  raycaster=new THREE.Raycaster();mouse=new THREE.Vector2();
+  setupCamCtrl(canvas);addAssetMkrs();
+  renderer.setAnimationLoop(renderLoop);
+}
+function renderLoop(t){
+  fc++;if(t-ft>1000){fps=Math.round(fc*1000/(t-ft));fc=0;ft=t;}
+  scene.children.filter(c=>c.userData.isPulse).forEach(r=>{const p=Math.sin(Date.now()*.003)*.3+.7;r.scale.setScalar(p);r.material.opacity=.6-Math.sin(Date.now()*.003)*.3;});
+  updateHUD();renderer.render(scene,camera);
+}
+function setupCamCtrl(c){
+  c.addEventListener('mousedown',e=>{ctrl.down=true;ctrl.lx=e.clientX;ctrl.ly=e.clientY;ctrl.mode=e.button===2?'pan':'orbit';});
+  c.addEventListener('mousemove',e=>{
+    if(!ctrl.down)return;const dx=e.clientX-ctrl.lx,dy=e.clientY-ctrl.ly;ctrl.lx=e.clientX;ctrl.ly=e.clientY;
+    if(ctrl.mode==='orbit'){camTh-=dx*.008;camPh=Math.max(.05,Math.min(Math.PI*.48,camPh-dy*.006));}
+    else{const s=camR*.001,r=new THREE.Vector3();r.crossVectors(camera.position.clone().sub(camTgt),new THREE.Vector3(0,1,0)).normalize();camTgt.addScaledVector(r,-dx*s);camTgt.y+=dy*s;}
+    updCam();
+  });
+  c.addEventListener('mouseup',()=>ctrl.down=false);c.addEventListener('mouseleave',()=>ctrl.down=false);
+  c.addEventListener('contextmenu',e=>e.preventDefault());
+  c.addEventListener('wheel',e=>{e.preventDefault();camR=Math.max(.5,Math.min(200,camR*(1+e.deltaY*.001)));updCam();},{passive:false});
+  c.addEventListener('click',onBimClick);updCam();
+}
+function updCam(){
+  camera.position.set(camTgt.x+camR*Math.sin(camPh)*Math.sin(camTh),camTgt.y+camR*Math.cos(camPh),camTgt.z+camR*Math.sin(camPh)*Math.cos(camTh));
+  camera.lookAt(camTgt);
+}
+function snapCam(v){const m={top:[.02,.01],front:[Math.PI/4,.3],right:[Math.PI/4+Math.PI/2,.3],iso:[Math.PI/4,Math.PI/3.5]};[camTh,camPh]=m[v]||m.iso;updCam();}
+function resetCam(){camTh=Math.PI/4;camPh=Math.PI/3.5;if(mdlBBox){const c=new THREE.Vector3();mdlBBox.getCenter(c);camTgt.copy(c);camR=mdlBBox.getSize(new THREE.Vector3()).length()*1.5;}else{camR=20;camTgt.set(0,0,0);}updCam();}
+function fitAll(){if(!mdlBBox)return;const c=new THREE.Vector3();mdlBBox.getCenter(c);camTgt.copy(c);camR=mdlBBox.getSize(new THREE.Vector3()).length()*1.2;updCam();}
+function zoomD(f){camR=Math.max(.5,Math.min(200,camR*(1/f)));updCam();}
+function updateHUD(){const h=document.getElementById('bimhud');if(!mdlGroup){h.textContent='';return;}h.innerHTML=`θ ${(camTh*180/Math.PI).toFixed(0)}° φ ${(camPh*180/Math.PI).toFixed(0)}°<br/>zoom ×${(20/camR).toFixed(2)}<br/>${fps} fps · ${meshes.length} el`;}
+
+// ══════════════════════ FILE LOADING ═════════════════════════════════
+function handleFileInput(inp){const f=inp.files[0];if(f)loadBIM(f);inp.value='';}
+function loadBIM(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  showLoad('Loading '+file.name,'Reading file…',0);
+  document.getElementById('bimempty').style.display='none';
+  if(!threeReady){initThree();threeReady=true;}
+  goPage('bim',document.querySelector('[data-page="bim"]'));
+  const r=new FileReader();
+  if(ext==='glb'){r.readAsArrayBuffer(file);r.onload=e=>loadGLB(e.target.result,file);}
+  else if(ext==='gltf'){r.readAsText(file);r.onload=e=>loadGLTF(JSON.parse(e.target.result),null,file);}
+  else if(ext==='obj'){r.readAsText(file);r.onload=e=>parseOBJ(e.target.result,file);}
+  else if(ext==='ifc'){r.readAsText(file);r.onload=e=>parseIFC(e.target.result,file);}
+  else{hideLoad();showToast('Format .'+ext+' not directly supported. Export as IFC from Revit.');}
+}
+function loadGLB(buf,file){
+  setLoad('Parsing GLB binary…',20);
+  try{
+    const dv=new DataView(buf);
+    if(dv.getUint32(0,true)!==0x46546C67)throw new Error('Not a valid GLB file');
+    const jl=dv.getUint32(12,true);
+    const json=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,20,jl)));
+    let bin=null;const bo=20+jl;if(bo+8<buf.byteLength){const bl=dv.getUint32(bo,true);bin=buf.slice(bo+8,bo+8+bl);}
+    loadGLTF(json,bin,file);
+  }catch(e){hideLoad();showToast('GLB error: '+e.message);console.error(e);}
+}
+function loadGLTF(json,bin,file){
+  setLoad('Building geometry…',55);
+  const g=new THREE.Group();g.name=file.name;
+  const COLS=[0x00C8E0,0x88CCBB,0xCCAA88,0x9988CC,0x88AACC,0xBBBBCC,0xCCAA66];
+  let ci=0;
+  if(json.meshes&&json.accessors){
+    const getA=(idx)=>{
+      const a=json.accessors[idx],bv=json.bufferViews[a.bufferView||a.bufferViewIndex];
+      const buf2=bin?new Uint8Array(bin,bv.byteOffset||0,bv.byteLength):new Uint8Array(bv.byteLength);
+      const tc={5126:Float32Array,5123:Uint16Array,5125:Uint32Array,5121:Uint8Array}[a.componentType]||Float32Array;
+      const cc={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[a.type]||1;
+      const sl=buf2.slice(a.byteOffset||0,(a.byteOffset||0)+a.count*cc*tc.BYTES_PER_ELEMENT);
+      return new tc(sl.buffer);
+    };
+    json.meshes.forEach((mesh,mi)=>{
+      mesh.primitives.forEach((prim,pi)=>{
+        try{
+          const geo=new THREE.BufferGeometry();
+          if(prim.attributes.POSITION!==undefined)geo.setAttribute('position',new THREE.BufferAttribute(getA(prim.attributes.POSITION),3));
+          if(prim.attributes.NORMAL!==undefined)geo.setAttribute('normal',new THREE.BufferAttribute(getA(prim.attributes.NORMAL),3));
+          if(prim.indices!==undefined)geo.setIndex(new THREE.BufferAttribute(getA(prim.indices),1));
+          if(!geo.attributes.normal)geo.computeVertexNormals();
+          const mat=new THREE.MeshPhongMaterial({color:COLS[ci%COLS.length],specular:0x223355,shininess:50,side:THREE.DoubleSide,transparent:true,opacity:.9});
+          const m=new THREE.Mesh(geo,mat);m.name=(mesh.name||'Mesh_'+mi)+'_'+pi;m.userData={type:gType(m.name),floor:gFloor(ci)};
+          m.castShadow=true;g.add(m);meshes.push(m);origMats.set(m.uuid,mat.clone());ci++;
+        }catch(e){console.warn(e);}
+      });
+    });
+  }
+  onReady(meshes.length?g:fallback(file),file);
+}
+function parseOBJ(txt,file){
+  setLoad('Parsing OBJ…',20);
+  const lines=txt.split('\n'),pos=[];const grps=[{name:'default',faces:[]}];let cur=grps[0];
+  for(const raw of lines){const l=raw.trim();if(!l||l[0]==='#')continue;const p=l.split(/\s+/),cmd=p[0];if(cmd==='v')pos.push(+p[1],+p[2],+p[3]);else if(cmd==='g'||cmd==='o'){cur={name:p.slice(1).join(' ')||'Group',faces:[]};grps.push(cur);}else if(cmd==='f')cur.faces.push(p.slice(1));}
+  const g=new THREE.Group();g.name=file.name;
+  const COLS=[0x00C8E0,0x88CCBB,0xCCAA88,0x9988CC,0x88AACC,0xBBBBCC,0xCCAA66];let ci=0;
+  grps.forEach(gr=>{
+    if(!gr.faces.length)return;const verts=[];
+    for(const face of gr.faces){const pts=face.map(c=>{const[vi]=c.split('/').map(x=>+x||0);const pi=(vi>0?vi-1:pos.length/3+vi)*3;return[pos[pi]||0,pos[pi+1]||0,pos[pi+2]||0];});for(let t=0;t<face.length-2;t++)verts.push(...pts[0],...pts[t+1],...pts[t+2]);}
+    if(verts.length<9)return;
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(verts),3));geo.computeVertexNormals();
+    const mat=new THREE.MeshPhongMaterial({color:COLS[ci%COLS.length],shininess:40,side:THREE.DoubleSide,transparent:true,opacity:.9});
+    const m=new THREE.Mesh(geo,mat);m.name=gr.name;m.userData={type:gType(gr.name),floor:gFloor(ci)};
+    m.castShadow=true;g.add(m);meshes.push(m);origMats.set(m.uuid,mat.clone());ci++;
+  });
+  onReady(meshes.length?g:fallback(file),file);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  REAL IFC GEOMETRY ENGINE
+//  Reads IFCEXTRUDEDAREASOLID, IFCRECTANGLEPROFILEDEF, IFCARBITRARYCLOSEDPROFILEDEF,
+//  IFCAXIS2PLACEMENT3D, IFCLOCALPLACEMENT and produces actual THREE.js meshes.
+//  Falls back to schematic box model for entities with no geometry.
+// ══════════════════════════════════════════════════════════════════
+
+function parseIFC(txt,file){
+  setLoad('Parsing IFC…',5);
+
+  /* ── helpers ──────────────────────────────────────────────────────── */
+  function safeNum(s){const v=parseFloat(s);return isFinite(v)?v:0;}
+  function safeRef(s){return(s&&s[0]==='#')?s.slice(1):null;}
+  function safeStr(s){return(s||'').replace(/^'|'$/g,'');}
+  function isValidMesh(o){
+    return o instanceof THREE.Mesh &&
+           o.geometry instanceof THREE.BufferGeometry &&
+           o.material instanceof THREE.Material;
+  }
+  function isFiniteVec3(v){return isFinite(v.x)&&isFinite(v.y)&&isFinite(v.z);}
+  function isFiniteMat(m){return m.elements.every(isFinite);}
+
+  /* ── tokenise STEP top-level args ─────────────────────────────────── */
+  function splitArgs(raw){
+    const out=[];let d=0,cur='';
+    for(let i=0;i<raw.length;i++){
+      const c=raw[i];
+      if(c==='(')d++;else if(c===')')d--;
+      if(c===','&&d===0){out.push(cur.trim());cur='';}else cur+=c;
+    }
+    if(cur.trim())out.push(cur.trim());
+    return out;
+  }
+
+  /* ── index all entities ────────────────────────────────────────────── */
+  const E={};
+  // join continuation lines then split on ; boundaries
+  const joined=txt.replace(/\r/g,'').replace(/\n/g,' ');
+  const entityRx=/#(\d+)\s*=\s*(\w+)\s*\(([\s\S]*?)\)\s*;/g;
+  let em;
+  while((em=entityRx.exec(joined))!==null){
+    E[em[1]]={type:em[2],_raw:em[3],_args:null};
+  }
+
+  function A(id){
+    if(!id||!E[id])return[];
+    if(!E[id]._args)E[id]._args=splitArgs(E[id]._raw);
+    return E[id]._args;
+  }
+
+  const entityCount=Object.keys(E).length;
+  setLoad('Indexed '+entityCount+' entities…',18);
+
+  /* ── extract storeys ───────────────────────────────────────────────── */
+  let projName='IFC Model';
+  const storeys=[];
+  for(const[id,e]of Object.entries(E)){
+    if(e.type==='IFCPROJECT'){
+      const a=A(id);
+      projName=safeStr(a[2])||safeStr(a[1])||'IFC Model';
+    }
+    if(e.type==='IFCBUILDINGSTOREY'){
+      const a=A(id);
+      const nm=safeStr(a[2])||safeStr(a[1])||('Level '+storeys.length);
+      const elv=safeNum(a[9])||safeNum(a[8])||storeys.length*3.5;
+      storeys.push({id,name:nm,elev:elv});
+    }
+  }
+  storeys.sort((a,b)=>a.elev-b.elev);
+  if(!storeys.length)
+    ['Basement','Ground Fl.','Level 1','Level 2','Level 3','Roof']
+      .forEach((n,i)=>storeys.push({id:'fs'+i,name:n,elev:i*3.5}));
+
+  setLoad('Resolving placements…',28);
+
+  /* ── placement resolution ─────────────────────────────────────────── */
+  const _pc={}, _pr=new Set();
+  function identityMat(){return new THREE.Matrix4();}
+
+  function worldMat(placId,depth){
+    if(!placId||!E[placId]||depth>10)return identityMat();
+    if(_pc[placId])return _pc[placId].clone();
+    if(_pr.has(placId))return identityMat();
+    _pr.add(placId);
+    let out=identityMat();
+    try{
+      const a=A(placId);
+      const tp=E[placId].type;
+      if(tp==='IFCLOCALPLACEMENT'){
+        const pm=worldMat(safeRef(a[0]),depth+1);
+        const rm=axis2mat(safeRef(a[1]));
+        if(isFiniteMat(pm)&&isFiniteMat(rm))out=pm.multiply(rm);
+      }else if(tp==='IFCAXIS2PLACEMENT3D'||tp==='IFCAXIS2PLACEMENT2D'){
+        out=axis2mat(placId);
+      }
+    }catch(e){}
+    if(!isFiniteMat(out))out=identityMat();
+    _pc[placId]=out.clone();
+    _pr.delete(placId);
+    return out;
+  }
+
+  function axis2mat(id){
+    if(!id||!E[id])return identityMat();
+    try{
+      const a=A(id);
+      const loc=cartPt(safeRef(a[0]));
+      const axisVec=dirVec(safeRef(a[1]),new THREE.Vector3(0,0,1));
+      const refVec =dirVec(safeRef(a[2]),new THREE.Vector3(1,0,0));
+      const Z=axisVec.normalize();
+      let X=refVec.normalize();
+      if(X.lengthSq()<1e-6)X.set(1,0,0);
+      const Y=new THREE.Vector3().crossVectors(Z,X).normalize();
+      if(Y.lengthSq()<1e-6)return identityMat();
+      X.crossVectors(Y,Z).normalize();
+      const m=new THREE.Matrix4().makeBasis(X,Y,Z);
+      if(isFiniteVec3(loc))m.setPosition(loc);
+      return isFiniteMat(m)?m:identityMat();
+    }catch(e){return identityMat();}
+  }
+
+  function cartPt(id){
+    if(!id||!E[id])return new THREE.Vector3();
+    try{
+      const a=A(id);
+      const raw=(a[0]||'').replace(/[()]/g,'').split(',');
+      const v=new THREE.Vector3(safeNum(raw[0]),safeNum(raw[1]),safeNum(raw[2]||'0'));
+      return isFiniteVec3(v)&&v.length()<1e6?v:new THREE.Vector3();
+    }catch(e){return new THREE.Vector3();}
+  }
+
+  function dirVec(id,fallback){
+    if(!id||!E[id])return fallback?fallback.clone():new THREE.Vector3(0,0,1);
+    try{
+      const a=A(id);
+      const raw=(a[0]||'').replace(/[()]/g,'').split(',');
+      const v=new THREE.Vector3(safeNum(raw[0]),safeNum(raw[1]),safeNum(raw[2]||'0'));
+      return v.lengthSq()>1e-10?v:(fallback?fallback.clone():new THREE.Vector3(0,0,1));
+    }catch(e){return fallback?fallback.clone():new THREE.Vector3(0,0,1);}
+  }
+
+  setLoad('Extracting profiles…',38);
+
+  /* ── profile extraction ────────────────────────────────────────────── */
+  function profile2D(id){
+    if(!id||!E[id])return null;
+    const e=E[id],a=A(id);
+    try{
+      if(e.type==='IFCRECTANGLEPROFILEDEF'){
+        const x=safeNum(a[2])/2, y=safeNum(a[3])/2;
+        if(x>0&&y>0&&x<1e5&&y<1e5)
+          return[{x:-x,y:-y},{x:x,y:-y},{x:x,y:y},{x:-x,y:y}];
+      }
+      if(e.type==='IFCRECTANGLEHOLLOWPROFILEDEF'){
+        const x=safeNum(a[2])/2,y=safeNum(a[3])/2;
+        if(x>0&&y>0)return[{x:-x,y:-y},{x:x,y:-y},{x:x,y:y},{x:-x,y:y}];
+      }
+      if(e.type==='IFCCIRCLEPROFILEDEF'){
+        const r=safeNum(a[2]);
+        if(r>0&&r<1e5){
+          const pts=[];
+          for(let i=0;i<24;i++){const ang=i/24*Math.PI*2;pts.push({x:Math.cos(ang)*r,y:Math.sin(ang)*r});}
+          return pts;
+        }
+      }
+      if(e.type==='IFCISHAPEPROFILEDEF'){
+        const ow=safeNum(a[3])/2,od=safeNum(a[2])/2,tw=safeNum(a[5])/2,tf=safeNum(a[4]);
+        if(ow>0&&od>0&&tw>0&&tf>0)
+          return[{x:-ow,y:-od},{x:ow,y:-od},{x:ow,y:-od+tf},{x:tw,y:-od+tf},
+                 {x:tw,y:od-tf},{x:ow,y:od-tf},{x:ow,y:od},{x:-ow,y:od},
+                 {x:-ow,y:od-tf},{x:-tw,y:od-tf},{x:-tw,y:-od+tf},{x:-ow,y:-od+tf}];
+      }
+      if(e.type==='IFCARBITRARYCLOSEDPROFILEDEF'||e.type==='IFCARBITRARYPROFILEDEFWITHVOIDS'){
+        return polylinePts(safeRef(a[2]));
+      }
+      if(e.type==='IFCCOMPOSITEPROFILEDEF'){
+        const raw=(a[1]||'').replace(/[()]/g,'').split(',');
+        return profile2D(safeRef(raw[0]));
+      }
+    }catch(ex){}
+    return null;
+  }
+
+  function polylinePts(id){
+    if(!id||!E[id])return null;
+    try{
+      const a=A(id);
+      if(E[id].type==='IFCPOLYLINE'){
+        const raw=(a[0]||'').replace(/[()]/g,'').split(',');
+        const pts=raw.map(s=>safeRef(s.trim())).filter(Boolean).map(pid=>{
+          const p=cartPt(pid);return{x:p.x,y:p.y};
+        }).filter(p=>isFinite(p.x)&&isFinite(p.y));
+        // remove duplicate close point
+        if(pts.length>1){
+          const f=pts[0],l=pts[pts.length-1];
+          if(Math.abs(f.x-l.x)<1e-4&&Math.abs(f.y-l.y)<1e-4)pts.pop();
+        }
+        return pts.length>=3?pts:null;
+      }
+      if(E[id].type==='IFCARBITRARYCLOSEDPROFILEDEF')return polylinePts(safeRef(a[2]));
+    }catch(ex){}
+    return null;
+  }
+
+  /* ── safe extrude ──────────────────────────────────────────────────── */
+  function safeExtrude(pts,depth,mat){
+    if(!pts||pts.length<3)return null;
+    const d=Math.abs(depth);
+    if(d<1e-6||d>1e5)return null;
+    if(pts.some(p=>!isFinite(p.x)||!isFinite(p.y)))return null;
+    // Check polygon area > 0
+    let area=0;
+    for(let i=0,j=pts.length-1;i<pts.length;j=i++)
+      area+=pts[j].x*pts[i].y-pts[i].x*pts[j].y;
+    if(Math.abs(area)<1e-10)return null;
+    try{
+      const shape=new THREE.Shape();
+      shape.moveTo(pts[0].x,pts[0].y);
+      for(let i=1;i<pts.length;i++)shape.lineTo(pts[i].x,pts[i].y);
+      shape.closePath();
+      const geo=new THREE.ExtrudeGeometry(shape,{depth:d,bevelEnabled:false});
+      const pos=geo.attributes&&geo.attributes.position;
+      if(!pos||pos.count<3)return null;
+      // check first few verts for NaN
+      for(let i=0;i<Math.min(pos.count,9);i++){
+        if(!isFinite(pos.getX(i))||!isFinite(pos.getY(i))||!isFinite(pos.getZ(i))){
+          geo.dispose();return null;
+        }
+      }
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.castShadow=true;mesh.receiveShadow=true;
+      if(!isValidMesh(mesh)){geo.dispose();return null;}
+      return mesh;
+    }catch(ex){return null;}
+  }
+
+  /* ── solid from IFCEXTRUDEDAREASOLID id ───────────────────────────── */
+  function solidFromId(solidId,ifcType){
+    if(!solidId||!E[solidId])return null;
+    const tp=E[solidId].type;
+    if(tp!=='IFCEXTRUDEDAREASOLID'&&tp!=='IFCEXTRUDEDAREASOLIDTAPERED')return null;
+    const a=A(solidId);
+    const pts=profile2D(safeRef(a[0]));
+    const depth=safeNum(a[3]);
+    if(!pts||depth<=0)return null;
+    const mesh=safeExtrude(pts,depth,getMat(ifcType));
+    if(!isValidMesh(mesh))return null;
+    // local placement inside the solid
+    const posId=safeRef(a[1]);
+    if(posId){
+      const lm=axis2mat(posId);
+      if(isFiniteMat(lm))mesh.applyMatrix4(lm);
+    }
+    return isValidMesh(mesh)?mesh:null;
+  }
+
+  /* ── brep from IFCFACETEDBREP ─────────────────────────────────────── */
+  function brepFromId(brepId,ifcType){
+    if(!brepId||!E[brepId])return null;
+    try{
+      const outerRef=safeRef(A(brepId)[0]);
+      if(!outerRef||!E[outerRef])return null;
+      const facesRaw=(A(outerRef)[0]||'').replace(/[()]/g,'');
+      const verts=[];
+      for(const fid of facesRaw.split(',').map(s=>safeRef(s.trim())).filter(Boolean)){
+        if(!E[fid])continue;
+        const boundsRaw=(A(fid)[0]||'').replace(/[()]/g,'');
+        for(const bid of boundsRaw.split(',').map(s=>safeRef(s.trim())).filter(Boolean)){
+          if(!E[bid])continue;
+          const loopId=safeRef(A(bid)[0]);
+          if(!loopId||!E[loopId])continue;
+          const ptsRaw=(A(loopId)[0]||'').replace(/[()]/g,'');
+          const ptIds=ptsRaw.split(',').map(s=>safeRef(s.trim())).filter(Boolean);
+          if(ptIds.length<3)continue;
+          const pts3=ptIds.map(pid=>cartPt(pid));
+          if(pts3.some(p=>!isFiniteVec3(p)))continue;
+          for(let i=1;i<pts3.length-1;i++){
+            verts.push(
+              pts3[0].x,pts3[0].y,pts3[0].z,
+              pts3[i].x,pts3[i].y,pts3[i].z,
+              pts3[i+1].x,pts3[i+1].y,pts3[i+1].z
+            );
+          }
+        }
+      }
+      if(verts.length<9||verts.some(v=>!isFinite(v)))return null;
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(verts),3));
+      geo.computeVertexNormals();
+      const mesh=new THREE.Mesh(geo,getMat(ifcType));
+      mesh.castShadow=true;mesh.receiveShadow=true;
+      return isValidMesh(mesh)?mesh:null;
+    }catch(ex){return null;}
+  }
+
+  /* ── material factory ────────────────────────────────────────────── */
+  const MATS={
+    IFCWALL:            {color:0x8899BB,opacity:.92,transparent:true,shininess:15},
+    IFCWALLSTANDARDCASE:{color:0x8899BB,opacity:.92,transparent:true,shininess:15},
+    IFCSLAB:            {color:0x556677,shininess:8},
+    IFCCOLUMN:          {color:0x99AABB,shininess:40},
+    IFCBEAM:            {color:0x778899,shininess:30},
+    IFCWINDOW:          {color:0x88CCFF,opacity:.35,transparent:true,shininess:120},
+    IFCDOOR:            {color:0xBB9966,shininess:25},
+    IFCROOF:            {color:0x445566,shininess:10},
+    IFCSTAIR:           {color:0x889999,shininess:20},
+    IFCFURNISHINGELEMENT:{color:0xAA9977,shininess:20},
+  };
+  function getMat(tp){
+    const def=MATS[tp]||{color:0x6677AA,opacity:.85,transparent:true,shininess:15};
+    return new THREE.MeshPhongMaterial({...def,side:THREE.DoubleSide});
+  }
+
+  setLoad('Building geometry…',50);
+
+  /* ── containment map ─────────────────────────────────────────────── */
+  const elemStorey={};
+  const storeyById={};
+  storeys.forEach(s=>storeyById[s.id]=s);
+  for(const[id,e]of Object.entries(E)){
+    if(e.type==='IFCRELCONTAINEDINSPATIALSTRUCTURE'){
+      const a=A(id);
+      const spatId=safeRef(a[5])||safeRef(a[4]);
+      const st=storeyById[spatId];if(!st)continue;
+      const raw=(a[4]||'').replace(/[()]/g,'');
+      raw.split(',').map(s=>safeRef(s.trim())).filter(Boolean)
+         .forEach(eid=>{if(!elemStorey[eid])elemStorey[eid]=st.name;});
+    }
+  }
+
+  /* ── main extraction loop ─────────────────────────────────────────── */
+  const g=new THREE.Group();g.name=projName;
+  let nExtracted=0,nFallback=0;
+
+  const ELEM_TYPES=new Set([
+    'IFCWALL','IFCWALLSTANDARDCASE','IFCSLAB','IFCCOLUMN','IFCBEAM',
+    'IFCWINDOW','IFCDOOR','IFCROOF','IFCSTAIR','IFCPLATE','IFCMEMBER',
+    'IFCFURNISHINGELEMENT','IFCBUILDINGELEMENTPROXY','IFCRAMP','IFCRAILING',
+    'IFCFOOTING','IFCPILE','IFCSHADING'
+  ]);
+
+  // Safe mesh finaliser — the ONE place we call g.add
+  function commitMesh(mesh,tp,floorName,elemId,label){
+    // Triple-check before touching Three.js scene graph
+    if(!isValidMesh(mesh))return false;
+    // Check all geometry attributes are finite
+    const pos=mesh.geometry.attributes.position;
+    if(pos){
+      for(let i=0;i<Math.min(pos.count,20);i++){
+        if(!isFinite(pos.getX(i))||!isFinite(pos.getY(i))||!isFinite(pos.getZ(i))){
+          mesh.geometry.dispose();return false;
+        }
+      }
+    }
+    // Check world position after matrix application
+    const wp=new THREE.Vector3().setFromMatrixPosition(mesh.matrixWorld);
+    // Note: matrixWorld isn't computed until we add to scene, so check position directly
+    if(!isFinite(mesh.position.x)||!isFinite(mesh.position.y)||!isFinite(mesh.position.z))return false;
+    if(mesh.position.length()>200000)return false;
+    mesh.name=(label||tp)+'_'+elemId;
+    mesh.userData={type:tp.replace('STANDARDCASE',''),floor:floorName,elemId};
+    g.add(mesh);       // ← only add call in entire IFC path
+    meshes.push(mesh);
+    origMats.set(mesh.uuid,mesh.material.clone());
+    return true;
+  }
+
+  for(const[elemId,e]of Object.entries(E)){
+    if(!ELEM_TYPES.has(e.type))continue;
+    const a=A(elemId);
+    const label=safeStr(a[2])||safeStr(a[1])||e.type.replace('IFC','');
+    const placId=safeRef(a[5]);
+    const reprId=safeRef(a[6]);
+    const floorName=elemStorey[elemId]||'Unknown';
+    const wmat=worldMat(placId,0);
+
+    let got=false;
+
+    if(reprId&&E[reprId]){
+      // Walk: IFCPRODUCTDEFINITIONSHAPE → IFCSHAPEREPRESENTATION → geometry items
+      const pdsArgs=A(reprId);
+      const repsRaw=(pdsArgs[2]||pdsArgs[1]||'').replace(/[()]/g,'');
+      outer:
+      for(const repId of repsRaw.split(',').map(s=>safeRef(s.trim())).filter(Boolean)){
+        if(!E[repId])continue;
+        const rArgs=A(repId);
+        const itemsRaw=(rArgs[3]||rArgs[2]||'').replace(/[()]/g,'');
+        for(const itemId of itemsRaw.split(',').map(s=>safeRef(s.trim())).filter(Boolean)){
+          if(!E[itemId])continue;
+          const it=E[itemId];
+          let mesh=null;
+
+          if(it.type==='IFCEXTRUDEDAREASOLID'||it.type==='IFCEXTRUDEDAREASOLIDTAPERED'){
+            mesh=solidFromId(itemId,e.type);
+          }
+          else if(it.type==='IFCBOOLEANCLIPPINGRESULT'||it.type==='IFCBOOLEANRESULT'){
+            const ba=A(itemId);
+            mesh=solidFromId(safeRef(ba[1]),e.type);
+            if(!isValidMesh(mesh))mesh=solidFromId(safeRef(ba[2]),e.type);
+          }
+          else if(it.type==='IFCMAPPEDITEM'){
+            const ma=A(itemId);
+            const srcId=safeRef(ma[0]);
+            if(srcId&&E[srcId]){
+              const sArgs=A(srcId);
+              const mappedId=safeRef(sArgs[1]);
+              if(mappedId&&E[mappedId]){
+                const mArgs=A(mappedId);
+                const mRaw=(mArgs[3]||mArgs[2]||'').replace(/[()]/g,'');
+                for(const mItemId of mRaw.split(',').map(s=>safeRef(s.trim())).filter(Boolean)){
+                  if(!E[mItemId])continue;
+                  mesh=solidFromId(mItemId,e.type);
+                  if(isValidMesh(mesh))break;
+                }
+              }
+              if(isValidMesh(mesh)){
+                const mapOrigId=safeRef(sArgs[0]);
+                if(mapOrigId){const mm=axis2mat(mapOrigId);if(isFiniteMat(mm))mesh.applyMatrix4(mm);}
+              }
+            }
+          }
+          else if(it.type==='IFCFACETEDBREP'||it.type==='IFCADVANCEDBREP'){
+            mesh=brepFromId(itemId,e.type);
+          }
+
+          if(isValidMesh(mesh)){
+            // Apply element world transform
+            if(isFiniteMat(wmat))mesh.applyMatrix4(wmat);
+            if(commitMesh(mesh,e.type,floorName,elemId,label)){nExtracted++;got=true;}
+            break outer;
+          }
+        }
+      }
+    }
+
+    // Fallback: tiny indicator cube at element origin
+    if(!got){
+      const pos=new THREE.Vector3().setFromMatrixPosition(wmat);
+      if(isFiniteVec3(pos)&&pos.length()<100000){
+        const fbMat=getMat(e.type);fbMat.opacity=0.3;fbMat.transparent=true;
+        const fb=new THREE.Mesh(new THREE.BoxGeometry(.4,.4,.4),fbMat);
+        fb.castShadow=false;fb.receiveShadow=false;
+        fb.position.copy(pos);
+        if(commitMesh(fb,e.type,floorName,elemId,label+'_fb'))nFallback++;
+      }
+    }
+  }
+
+  setLoad('Finalising…',92);
+  if(nExtracted<3)buildSchematic(g,storeys,projName,meshes,origMats);
+
+  console.log('IFC: extracted='+nExtracted+' fallbacks='+nFallback+' total='+meshes.length);
+  onReady(g,file,{projName,flNames:storeys.map(s=>s.name),entityCount,extracted:nExtracted});
+}
+
+function buildSchematic(g, storeys, projName, meshes, origMats){
+  const W=14,D=10;
+  const mwall=()=>new THREE.MeshPhongMaterial({color:0x6677AA,shininess:15,side:THREE.DoubleSide,transparent:true,opacity:.55});
+  const mslab=()=>new THREE.MeshPhongMaterial({color:0x445566,shininess:8,side:THREE.DoubleSide,transparent:true,opacity:.55});
+  const add=(geo,mat,px,py,pz,ry,tp,fl)=>{
+    const m=new THREE.Mesh(geo,mat); m.position.set(px,py,pz); if(ry)m.rotation.y=ry;
+    m.name=tp+'_schematic_'+fl; m.userData={type:tp,floor:fl,schematic:true};
+    m.castShadow=true; m.receiveShadow=true;
+    g.add(m); meshes.push(m); origMats.set(m.uuid,mat.clone());
+  };
+  storeys.forEach((s,fi)=>{
+    const y0=s.elev, h=fi<storeys.length-1?storeys[fi+1].elev-y0:3.5;
+    add(new THREE.BoxGeometry(W,h,.25),mwall(),0,y0+h/2,-D/2,0,'IFCWALL',s.name);
+    add(new THREE.BoxGeometry(W,h,.25),mwall(),0,y0+h/2, D/2,0,'IFCWALL',s.name);
+    add(new THREE.BoxGeometry(D,h,.25),mwall(),-W/2,y0+h/2,0,Math.PI/2,'IFCWALL',s.name);
+    add(new THREE.BoxGeometry(D,h,.25),mwall(), W/2,y0+h/2,0,Math.PI/2,'IFCWALL',s.name);
+    add(new THREE.BoxGeometry(W,.2,D),mslab(),0,y0,0,0,'IFCSLAB',s.name);
+  });
+}
+
+function fallback(file){
+  const g=new THREE.Group();g.name=file.name;
+  [{n:'Level 1',y:0},{n:'Level 2',y:3.5},{n:'Level 3',y:7}].forEach((f,fi)=>{
+    const h=3.2;[[7,h,.2,0,0,-5],[7,h,.2,0,0,5],[.2,h,10,5,0,0],[.2,h,10,-5,0,0]].forEach(([w,hh,d,x,y,z])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),new THREE.MeshPhongMaterial({color:0x6677AA,shininess:30,side:THREE.DoubleSide,transparent:true,opacity:.9}));m.position.set(x,f.y+h/2,z);m.userData={type:'IFCWALL',floor:f.n};m.castShadow=true;g.add(m);meshes.push(m);origMats.set(m.uuid,m.material.clone());});
+    const s=new THREE.Mesh(new THREE.BoxGeometry(10,.2,10),new THREE.MeshPhongMaterial({color:0x445566}));s.position.set(0,f.y,0);s.userData={type:'IFCSLAB',floor:f.n};s.receiveShadow=true;g.add(s);meshes.push(s);origMats.set(s.uuid,s.material.clone());
+    for(let wx=-3;wx<=3;wx+=2){const w=new THREE.Mesh(new THREE.BoxGeometry(1.2,1,.05),new THREE.MeshPhongMaterial({color:0x88DDFF,transparent:true,opacity:.35}));w.position.set(wx,f.y+h*.62,-5.1);w.userData={type:'IFCWINDOW',floor:f.n};g.add(w);meshes.push(w);origMats.set(w.uuid,w.material.clone());}
+  });
+  return g;
+}
+
+// ══════════════════════ MODEL READY ══════════════════════════════════
+function onReady(group,file,meta={}){
+  if(mdlGroup){scene.remove(mdlGroup);meshes=[];origMats.clear();}
+  mdlGroup=group;scene.add(mdlGroup);
+  const box=new THREE.Box3().setFromObject(mdlGroup),c=new THREE.Vector3();box.getCenter(c);mdlGroup.position.sub(c);
+  box.setFromObject(mdlGroup);mdlBBox=box;
+  const sz=mdlBBox.getSize(new THREE.Vector3()).length();camR=sz*1.4;camTgt.set(0,0,0);camTh=Math.PI/5;camPh=Math.PI/3.5;updCam();
+  setLoad('Rendering…',96);
+  setTimeout(()=>{
+    hideLoad();
+    document.getElementById('bimtbar').style.display='flex';
+    document.getElementById('bimvctrls').style.display='flex';
+    let vc=0;meshes.forEach(m=>{if(m.geometry?.attributes?.position)vc+=m.geometry.attributes.position.count;});
+    document.getElementById('bimloadpill').style.display='flex';
+    document.getElementById('bimloadtxt').textContent=file.name.slice(0,18)+(file.name.length>18?'…':'')+' · '+meshes.length+' el';
+    showToast('✓ '+file.name+' loaded — '+meshes.length+' elements, '+vc.toLocaleString()+' vertices');
+    buildFloorsUI(meta);buildTreeUI(file,meta);buildTypeFilters();buildFloorIsoUI();
+    buildFilebox(file,meta,vc);renderAssetRPList();repMkrs();
+    renderer.clippingPlanes=[];
+    if(curBimMode==='plan')draw2DPlan(null);else if(curBimMode==='section')draw2DSect();
+  },200);
+}
+
+// ══════════════════════ BIM LEFT BUILDERS ════════════════════════════
+function buildFloorsUI(meta){
+  const fm={};meshes.forEach(m=>{const f=m.userData.floor||'Unknown';if(!fm[f])fm[f]={name:f,cnt:0,msh:[]};fm[f].cnt++;fm[f].msh.push(m);});
+  flData=Object.values(fm).map((f,i)=>{let my=Infinity;f.msh.forEach(m=>{const b=new THREE.Box3().setFromObject(m);if(b.min.y<my)my=b.min.y;});return{...f,elev:isFinite(my)?+my.toFixed(1):i*3.5};}).sort((a,b)=>a.elev-b.elev);
+  const el=document.getElementById('floorlistbim');el.innerHTML='';
+  flData.forEach((f,i)=>{const d=document.createElement('div');d.className='flitem'+(i===0?' active':'');d.innerHTML=`<div class="flibar"></div><div style="flex:1">${f.name}</div><div class="flielv">${f.elev}m · ${f.cnt}</div>`;d.onclick=()=>{document.querySelectorAll('.flitem').forEach(x=>x.classList.remove('active'));d.classList.add('active');isoFloor(f);};el.appendChild(d);});
+}
+function buildTreeUI(file,meta){
+  const tg={};meshes.forEach(m=>{const t=m.userData.type||'Unknown';if(!tg[t])tg[t]=[];tg[t].push(m);});
+  document.getElementById('treecnt').textContent=meshes.length;
+  const ic={wall:'🧱',slab:'⬜',column:'🏛',window:'🪟',door:'🚪',beam:'━',roof:'🏠',stair:'🪜',unknown:'📦'};
+  let h=`<div class="tnode"><span class="tic">📁</span><span class="tlbl" style="font-weight:600">${file.name}</span><span class="tcnt">${meshes.length}</span></div>`;
+  Object.entries(tg).forEach(([t,ms])=>{
+    const fr=t.toLowerCase().replace('ifc','');const i2=Object.entries(ic).find(([k])=>fr.includes(k))?.[1]||'📦';
+    const id='tg_'+t;
+    h+=`<div class="tnode" onclick="togTree('${id}')"><span style="width:10px"></span><span class="tng" id="${id}_tng">▶</span><span class="tic">${i2}</span><span class="tlbl">${fr}</span><span class="tcnt">${ms.length}</span></div><div id="${id}" style="display:none">`;
+    ms.slice(0,18).forEach(m=>h+=`<div class="tnode" onclick="selMeshByUUID('${m.uuid}')"><span style="width:20px"></span><span class="tic" style="font-size:9px">◈</span><span class="tlbl" style="font-size:9px;color:var(--mt)">${m.name.slice(0,26)}</span></div>`);
+    if(ms.length>18)h+=`<div class="tnode" style="pointer-events:none"><span style="width:20px"></span><span style="font-size:9px;color:var(--dm)">+${ms.length-18} more</span></div>`;
+    h+='</div>';
+  });
+  document.getElementById('bimtree').innerHTML=h;
+}
+function togTree(id){const el=document.getElementById(id),tng=document.getElementById(id+'_tng');if(!el||!tng)return;const o=el.style.display!=='none';el.style.display=o?'none':'block';tng.classList.toggle('open',!o);}
+function selMeshByUUID(uuid){const m=meshes.find(x=>x.uuid===uuid);if(m)pickMesh(m);}
+function buildTypeFilters(){
+  const tc={IFCWALL:'#6688AA',IFCSLAB:'#7799AA',IFCCOLUMN:'#88AABB',IFCWINDOW:'#88CCEE',IFCDOOR:'#CC9966',IFCROOF:'#8899BB',Unknown:'#3D6080'};
+  document.getElementById('typefilters').innerHTML=Object.keys(Object.fromEntries(meshes.map(m=>[m.userData.type||'Unknown',1]))).map(t=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--b1)"><div style="width:7px;height:7px;border-radius:2px;background:${tc[t]||'#3D6080'};flex-shrink:0"></div><span style="flex:1;font-size:9px;color:var(--tx)">${t.replace('IFC','')}</span><input type="checkbox" checked onchange="filterType('${t}',this.checked)" style="accent-color:var(--ac)"/></div>`).join('');
+}
+function buildFloorIsoUI(){
+  document.getElementById('flooriso').innerHTML=flData.map(f=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--b1)"><span style="flex:1;font-size:9px;color:var(--tx)">${f.name}</span><span style="font-size:8px;font-family:var(--fm);color:var(--mt)">${f.elev}m</span><input type="checkbox" checked onchange="filterFloor('${f.name}',this.checked)" style="accent-color:var(--ac)"/></div>`).join('');
+}
+function buildFilebox(file,meta,vc){
+  const sz=file.size>1e6?(file.size/1e6).toFixed(1)+' MB':(file.size/1e3).toFixed(0)+' KB';
+  document.getElementById('fileinfobox').innerHTML=`<div class="filebox"><div class="fbn">📄 ${file.name}</div><div class="fbrow"><span class="fbk">Format</span><span class="fbv">${file.name.split('.').pop().toUpperCase()}</span></div><div class="fbrow"><span class="fbk">File size</span><span class="fbv">${sz}</span></div><div class="fbrow"><span class="fbk">Elements</span><span class="fbv">${meshes.length}</span></div><div class="fbrow"><span class="fbk">Vertices</span><span class="fbv">${vc.toLocaleString()}</span></div><div class="fbrow"><span class="fbk">Floors</span><span class="fbv">${flData.length}</span></div>${meta.entityCount?`<div class="fbrow"><span class="fbk">IFC entities</span><span class="fbv">${meta.entityCount.toLocaleString()}</span></div>`:''}</div>`;
+}
+function renderAssetRPList(){
+  document.getElementById('assetrplist').innerHTML=ASSETS.map(a=>{
+    const c=SC[a.status],hc=a.health>75?'#00EE88':a.health>40?'#FFD000':'#FF2244';
+    return`<div class="ali" onclick="hlAsset('${a.id}')"><div class="alidot" style="background:${c}"></div><div style="flex:1"><div class="alinm">${a.name}</div><div class="alifl">${a.floor} · ${a.type}</div><div class="hb2"><div class="hbf2" style="width:${a.health}%;background:${hc}"></div></div></div><div class="alih" style="color:${hc}">${a.health}%</div></div>`;
+  }).join('');
+}
+
+// ══════════════════════ ASSET MARKERS 3D ═════════════════════════════
+function addAssetMkrs(){
+  ASSETS.forEach(a=>{
+    const sg=new THREE.SphereGeometry(.22,10,7);
+    const sm=new THREE.Mesh(sg,new THREE.MeshPhongMaterial({color:SC[a.status]||0x888888,emissive:SC[a.status]||0,emissiveIntensity:.3}));
+    sm.position.set(a.p[0],a.p[1],a.p[2]);sm.name='asset_'+a.id;sm.userData={isAsset:true,assetId:a.id,asset:a};
+    scene.add(sm);mkrs.push(sm);
+    if(a.status==='critical'){const rg=new THREE.RingGeometry(.28,.36,14),rm=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:0xFF2244,side:THREE.DoubleSide,transparent:true,opacity:.55}));rm.position.copy(sm.position);rm.rotation.x=-Math.PI/2;rm.userData={isPulse:true};scene.add(rm);}
+  });
+}
+function repMkrs(){
+  if(!mdlBBox)return;const sz=mdlBBox.getSize(new THREE.Vector3());
+  ASSETS.forEach((a,i)=>{const mk=mkrs[i];if(!mk)return;mk.position.set((a.p[0]/8)*sz.x*.4,(a.p[1]/3)*sz.y*.35,(a.p[2]/3)*sz.z*.4);});
+}
+function hlAsset(id){
+  const mk=mkrs.find(m=>m.name==='asset_'+id),a=ASSETS.find(x=>x.id===id);if(!mk||!a)return;
+  camTgt.copy(mk.position);camR=8;updCam();showAssetPropsRP(a);
+  document.querySelectorAll('.ali').forEach((el,i)=>el.classList.toggle('active',ASSETS[i]?.id===id));
+  switchRTab('props',document.querySelector('.rpt'));
+}
+
+// ══════════════════════ CLICK SELECTION ══════════════════════════════
+function onBimClick(e){
+  const c=document.getElementById('threecanvas'),rect=c.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  if(msrOn){doMsr();return;}
+  const hits=raycaster.intersectObjects([...meshes,...mkrs]);
+  if(!hits.length){deselAll();return;}
+  const obj=hits[0].object;
+  if(obj.userData.isAsset){showAssetPropsRP(obj.userData.asset);switchRTab('props',document.querySelector('.rpt'));hlAsset(obj.userData.assetId);}
+  else pickMesh(obj);
+}
+function pickMesh(m){deselAll();activeMesh=m;m.material=new THREE.MeshPhongMaterial({color:0x00DCFF,emissive:0x003344,emissiveIntensity:.5,specular:0x00FFFF,shininess:80,side:THREE.DoubleSide,transparent:true,opacity:.88});showMeshPropsRP(m);switchRTab('props',document.querySelector('.rpt'));}
+function deselAll(){if(activeMesh){const o=origMats.get(activeMesh.uuid);if(o)activeMesh.material=applShade(o.clone());activeMesh=null;}document.getElementById('propsarea').innerHTML='<div style="padding:14px 13px;font-size:10px;color:var(--mt);line-height:1.7">Select an element to inspect its IFC properties and dimensions</div>';}
+function showMeshPropsRP(m){
+  const box=new THREE.Box3().setFromObject(m),sz=box.getSize(new THREE.Vector3()),vc=m.geometry?.attributes?.position?.count||0;
+  document.getElementById('propsarea').innerHTML=`<div class="propgrp"><div class="propgrp-title">Element Identity</div><div class="prow"><span class="pk">Name</span><span class="pv phi">${m.name.slice(0,22)}</span></div><div class="prow"><span class="pk">IFC Type</span><span class="pv">${m.userData.type||'Unknown'}</span></div><div class="prow"><span class="pk">Floor</span><span class="pv">${m.userData.floor||'—'}</span></div></div><div class="propgrp"><div class="propgrp-title">Dimensions (m)</div><div class="prow"><span class="pk">Width</span><span class="pv">${sz.x.toFixed(2)} m</span></div><div class="prow"><span class="pk">Height</span><span class="pv">${sz.y.toFixed(2)} m</span></div><div class="prow"><span class="pk">Depth</span><span class="pv">${sz.z.toFixed(2)} m</span></div><div class="prow"><span class="pk">Volume</span><span class="pv">${(sz.x*sz.y*sz.z).toFixed(2)} m³</span></div><div class="prow"><span class="pk">Vertices</span><span class="pv">${vc.toLocaleString()}</span></div></div>`;
+}
+function showAssetPropsRP(a){
+  const hc=a.health>75?'var(--gn)':a.health>40?'var(--yw)':'var(--rd)';const sc2={operational:'var(--gn)',warning:'var(--yw)',critical:'var(--rd)',standby:'var(--mt)'};
+  document.getElementById('propsarea').innerHTML=`<div class="propgrp"><div class="propgrp-title">Asset Identity</div><div class="prow"><span class="pk">ID</span><span class="pv phi">${a.id}</span></div><div class="prow"><span class="pk">Name</span><span class="pv">${a.name}</span></div><div class="prow"><span class="pk">Type</span><span class="pv">${a.type}</span></div><div class="prow"><span class="pk">Floor</span><span class="pv">${a.floor}</span></div><div class="prow"><span class="pk">Status</span><span class="pv" style="color:${sc2[a.status]}">${a.status}</span></div></div><div class="propgrp"><div class="propgrp-title">Health & Performance</div><div class="prow"><span class="pk">Health Score</span><span class="pv" style="color:${hc};font-weight:700">${a.health}%</span></div><div class="prow"><span class="pk">RUL</span><span class="pv ${a.rul&&a.rul<500?'pcr':a.rul&&a.rul<2000?'pwn':''}">${a.rul?a.rul.toLocaleString()+' hrs':'—'}</span></div><div class="prow"><span class="pk">Next PM</span><span class="pv ${a.pm==='OVERDUE'?'pcr':''}">${a.pm}</span></div></div>`;
+}
+
+// ══════════════════════ SHADING / ISOLATE / MEASURE ══════════════════
+function setShade(mode,btn){shade=mode;document.querySelectorAll('.bimtb').forEach(b=>{if(['Solid','Wire','X-Ray'].includes(b.textContent))b.classList.remove('active');});btn.classList.add('active');meshes.forEach(m=>{if(m!==activeMesh){const o=origMats.get(m.uuid);if(o)m.material=applShade(o.clone());}});}
+function applShade(mat){if(shade==='wire'){mat.wireframe=true;mat.transparent=false;mat.opacity=1;}else if(shade==='xray'){mat.wireframe=false;mat.transparent=true;mat.opacity=.2;}else{mat.wireframe=false;mat.transparent=true;mat.opacity=mat.opacity<.3?.88:mat.opacity;}return mat;}
+function toggleIsolate(){isolOn=!isolOn;document.getElementById('isolatebtn').classList.toggle('active',isolOn);if(!activeMesh)return;meshes.forEach(m=>m.visible=isolOn?m===activeMesh:true);}
+function toggleMeasure(){msrOn=!msrOn;document.getElementById('measurebtn').classList.toggle('active',msrOn);document.getElementById('measureov').classList.toggle('show',msrOn);if(!msrOn){msrPts=[];msrObjs.forEach(o=>scene.remove(o));msrObjs=[];document.getElementById('measuretxt').textContent='Click two points on model';}}
+function doMsr(){
+  const hits=raycaster.intersectObjects(meshes);if(!hits.length)return;
+  const pt=hits[0].point.clone();msrPts.push(pt);
+  const sg=new THREE.SphereGeometry(.07,7,7),sm=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0xFFD000}));sm.position.copy(pt);scene.add(sm);msrObjs.push(sm);
+  if(msrPts.length===2){const dist=msrPts[0].distanceTo(msrPts[1]);const lg=new THREE.BufferGeometry().setFromPoints(msrPts);const ln=new THREE.Line(lg,new THREE.LineBasicMaterial({color:0xFFD000}));scene.add(ln);msrObjs.push(ln);document.getElementById('measuretxt').textContent=dist.toFixed(3)+' m  ('+Math.round(dist*1000)+' mm)';msrPts=[];}else document.getElementById('measuretxt').textContent='Click second point…';
+}
+
+// ══════════════════════ CLIPPING ══════════════════════════════════════
+function doClip(){
+  if(!mdlBBox)return;
+  const cx=+document.getElementById('cx').value,cy=+document.getElementById('cy').value,cz=+document.getElementById('cz').value;
+  document.getElementById('cxv').textContent=cx>=1?'off':cx.toFixed(2);document.getElementById('cyv').textContent=cy>=1?'off':cy.toFixed(2);document.getElementById('czv').textContent=cz>=1?'off':cz.toFixed(2);
+  const sz=mdlBBox.getSize(new THREE.Vector3()),pl=[];
+  if(cx<1)pl.push(new THREE.Plane(new THREE.Vector3(-1,0,0),cx*sz.x/2));
+  if(cy<1)pl.push(new THREE.Plane(new THREE.Vector3(0,-1,0),cy*sz.y/2));
+  if(cz<1)pl.push(new THREE.Plane(new THREE.Vector3(0,0,-1),cz*sz.z/2));
+  renderer.clippingPlanes=pl;meshes.forEach(m=>{m.material.clippingPlanes=pl;m.material.needsUpdate=true;});
+}
+function resetClip(){['x','y','z'].forEach(ax=>{document.getElementById('c'+ax).value=1;document.getElementById('c'+ax+'v').textContent='off';});renderer.clippingPlanes=[];meshes.forEach(m=>{m.material.clippingPlanes=[];m.material.needsUpdate=true;});}
+function filterType(t,v){meshes.forEach(m=>{if((m.userData.type||'Unknown')===t)m.visible=v;});}
+function filterFloor(f,v){meshes.forEach(m=>{if(m.userData.floor===f)m.visible=v;});}
+function isoFloor(floor){meshes.forEach(m=>m.visible=m.userData.floor===floor.name);showToast('Showing: '+floor.name);if(curBimMode==='plan')draw2DPlan(floor);else if(curBimMode==='section')draw2DSect();}
+
+// ══════════════════════ 2D VIEWS ══════════════════════════════════════
+function bimMode(mode,btn){
+  curBimMode=mode;document.querySelectorAll('.bvtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('threecanvas').style.display=mode==='3d'?'block':'none';
+  document.getElementById('plancanvas').style.display=mode==='plan'?'block':'none';
+  document.getElementById('sectcanvas').style.display=mode==='section'?'block':'none';
+  document.getElementById('bimtbar').style.display=mode==='3d'&&meshes.length?'flex':'none';
+  document.getElementById('bimvctrls').style.display=mode==='3d'&&meshes.length?'flex':'none';
+  resize2D();
+  if(mode==='plan')draw2DPlan(null);
+  if(mode==='section')draw2DSect();
+}
+function resize2D(){
+  const a=document.getElementById('bimarea'),W=a.clientWidth,H=a.clientHeight;
+  ['plancanvas','sectcanvas'].forEach(id=>{const c=document.getElementById(id);c.width=W;c.height=H;});
+}
+function draw2DPlan(floor){
+  const c=document.getElementById('plancanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.fillStyle='#03060D';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#111A2E';ctx.lineWidth=.5;for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  if(!mdlBBox||!meshes.length){ctx.fillStyle='#3D6080';ctx.font='13px IBM Plex Mono';ctx.textAlign='center';ctx.fillText('Load a model to see floor plan',W/2,H/2);return;}
+  const sz=mdlBBox.getSize(new THREE.Vector3()),scale=Math.min((W-80)/sz.x,(H-80)/sz.z,35);
+  const toS=(wx,wz)=>({x:W/2+wx*scale,y:H/2+wz*scale});
+  const TC={IFCWALL:'#1A3355',IFCSLAB:'#112244',IFCCOLUMN:'#4466AA',IFCWINDOW:'#3388BB',IFCDOOR:'#886644',Unknown:'#142030'};
+  const ms=floor?meshes.filter(m=>m.userData.floor===floor.name):meshes;
+  ms.forEach(m=>{if(!m.visible)return;const col=TC[m.userData.type||'Unknown']||'#142030';const b=new THREE.Box3().setFromObject(m);const a2=toS(b.min.x,b.min.z);const bw=(b.max.x-b.min.x)*scale;const bh=(b.max.z-b.min.z)*scale;ctx.fillStyle=col+'CC';ctx.strokeStyle=col+'EE';ctx.lineWidth=m===activeMesh?2:.8;if(m===activeMesh){ctx.fillStyle='#00DCFF33';ctx.strokeStyle='#00DCFF';ctx.lineWidth=2;}ctx.fillRect(a2.x,a2.y,bw||2,bh||2);ctx.strokeRect(a2.x,a2.y,bw||2,bh||2);});
+  ASSETS.forEach(a=>{const mk=mkrs.find(m=>m.name==='asset_'+a.id);if(!mk)return;if(floor&&a.floor!==floor.name)return;const sc2=toS(mk.position.x,mk.position.z);ctx.fillStyle=SC[a.status];ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.beginPath();ctx.arc(sc2.x,sc2.y,5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 6px IBM Plex Mono';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(a.name.split('-')[1]||a.name[0],sc2.x,sc2.y);});
+  ctx.fillStyle='#3D6080';ctx.font='10px IBM Plex Mono';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('Floor Plan'+(floor?' — '+floor.name:' — All Floors'),10,10);ctx.fillText('Scale 1:'+Math.round(1/scale*1000)+'mm/px',10,24);
+  ctx.fillStyle='#00DCFF';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('N',W-22,22);
+  const lx=W-130,ly=H-90;ctx.fillStyle='#07091A99';ctx.fillRect(lx-6,ly-6,124,80);Object.entries(TC).slice(0,4).forEach(([t,col],i)=>{ctx.fillStyle=col;ctx.fillRect(lx,ly+i*17,10,9);ctx.fillStyle='#3D6080';ctx.font='8px IBM Plex Mono';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t.replace('IFC',''),lx+14,ly+i*17+4.5);});
+}
+function draw2DSect(){
+  const c=document.getElementById('sectcanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.fillStyle='#03060D';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#111A2E';ctx.lineWidth=.5;for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  if(!mdlBBox||!meshes.length){ctx.fillStyle='#3D6080';ctx.font='13px IBM Plex Mono';ctx.textAlign='center';ctx.fillText('Load a model to see section',W/2,H/2);return;}
+  const sz=mdlBBox.getSize(new THREE.Vector3()),scale=Math.min((W-80)/sz.x,(H-80)/sz.y,35),offX=W/2,offY=H-40;
+  const TC={IFCWALL:'#1A3355',IFCSLAB:'#112244',IFCCOLUMN:'#4466AA',IFCWINDOW:'#3388BB',IFCDOOR:'#886644',Unknown:'#142030'};
+  meshes.forEach(m=>{if(!m.visible)return;const col=TC[m.userData.type||'Unknown']||'#142030';const b=new THREE.Box3().setFromObject(m);ctx.fillStyle=col+'AA';ctx.strokeStyle=col;ctx.lineWidth=m===activeMesh?2:.7;if(m===activeMesh){ctx.fillStyle='#00DCFF33';ctx.strokeStyle='#00DCFF';ctx.lineWidth=2;}const sx=offX+b.min.x*scale,sy=offY-b.max.y*scale,sw=(b.max.x-b.min.x)*scale,sh=(b.max.y-b.min.y)*scale;ctx.fillRect(sx,sy,sw||2,sh||2);ctx.strokeRect(sx,sy,sw||2,sh||2);});
+  ctx.strokeStyle='#3D6080';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,offY);ctx.lineTo(W,offY);ctx.stroke();
+  flData.forEach(f=>{const sy=offY-f.elev*scale;if(sy<0||sy>H)return;ctx.strokeStyle='#111A2E';ctx.lineWidth=.5;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#3D6080';ctx.font='8px IBM Plex Mono';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(f.name+' ('+f.elev+'m)',4,sy);});
+  ctx.fillStyle='#3D6080';ctx.font='10px IBM Plex Mono';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('Section Cut — Front Elevation (X/Y)',10,10);
+}
+
+// ══════════════════════ RIGHT PANEL TABS ════════════════════════════
+function switchRTab(tab,btn){curRTab=tab;['props','assets','clip'].forEach(t=>document.getElementById('rtab-'+t).style.display=t===tab?'':'none');document.querySelectorAll('.rpt').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');}
+
+// ══════════════════════ RESIZE ════════════════════════════════════════
+function resizeBim(){
+  if(!renderer)return;const a=document.getElementById('bimarea'),W=a.clientWidth,H=a.clientHeight;
+  if(W>0&&H>0){renderer.setSize(W,H);camera.aspect=W/H;camera.updateProjectionMatrix();}resize2D();
+}
+window.addEventListener('resize',()=>{resizeBim();if(curBimMode==='plan')draw2DPlan(null);else if(curBimMode==='section')draw2DSect();});
+
+// ══════════════════════ LOAD OVERLAY ═════════════════════════════════
+function showLoad(t,s,p){const ov=document.getElementById('loadov');ov.classList.remove('hidden');document.getElementById('loadtitle').textContent=t;document.getElementById('loadsub').textContent=s;document.getElementById('loadfill').style.width=p+'%';}
+function setLoad(s,p){document.getElementById('loadsub').textContent=s;document.getElementById('loadfill').style.width=p+'%';}
+function hideLoad(){document.getElementById('loadov').classList.add('hidden');}
+
+// ══════════════════════ DRAG-DROP ════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  const ba=document.getElementById('bimarea');
+  const ov=document.getElementById('dropov');
+  ba.addEventListener('dragover',e=>{e.preventDefault();ov.classList.add('show');});
+  ba.addEventListener('dragleave',e=>{if(!ba.contains(e.relatedTarget))ov.classList.remove('show');});
+  ba.addEventListener('drop',e=>{e.preventDefault();ov.classList.remove('show');const f=e.dataTransfer.files[0];if(f)loadBIM(f);});
+  ['sbdrop','bimleftdrop'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag');});el.addEventListener('dragleave',()=>el.classList.remove('drag'));el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadBIM(f);});});
+});
+
+// ══════════════════════ HELPERS ══════════════════════════════════════
+function gType(n){const l=(n||'').toLowerCase();if(l.includes('wall'))return'IFCWALL';if(l.includes('slab')||l.includes('floor')||l.includes('ceil'))return'IFCSLAB';if(l.includes('col')||l.includes('pillar'))return'IFCCOLUMN';if(l.includes('win'))return'IFCWINDOW';if(l.includes('door'))return'IFCDOOR';if(l.includes('roof'))return'IFCROOF';return'Unknown';}
+function gFloor(idx){const f=['Basement','Ground Floor','Level 1','Level 2','Level 3','Roof'];return f[idx%f.length];}
+
+// Live sensor simulation
+setInterval(()=>{S24.forEach(d=>{d.energy=Math.max(10,Math.min(100,d.energy+(Math.random()-.5)*.5));d.temp=Math.max(15,Math.min(30,d.temp+(Math.random()-.5)*.2));});if(document.getElementById('page-energy').classList.contains('active'))renderEchart();},5000);
+</script>
+</body>
+</html>
